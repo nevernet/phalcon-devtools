@@ -1,10 +1,14 @@
 <?php
+/**
+ * Local variables
+ * @var \Phalcon\Mvc\Micro $app
+ */
 
 /**
  * Add your routes here
  */
 $app->get('/', function () use ($app) {
-    echo $app['view']->getRender(null, 'index');
+    echo $app['view']->render('index');
 });
 
 /**
@@ -12,5 +16,5 @@ $app->get('/', function () use ($app) {
  */
 $app->notFound(function () use ($app) {
     $app->response->setStatusCode(404, "Not Found")->sendHeaders();
-    echo $app['view']->getRender(null, '404');
+    echo $app['view']->render('404');
 });

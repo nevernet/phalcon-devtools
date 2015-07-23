@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,79 +20,93 @@
 
 namespace Phalcon\Commands\Builtin;
 
-use Phalcon\Text;
+use Phalcon\Builder\AllModels as AllModelsBuilder;
 use Phalcon\Builder;
-use Phalcon\Script\Color;
+use Phalcon\Config\Adapter\Ini as ConfigIni;
+use Phalcon\Config;
 use Phalcon\Commands\Command;
-use Phalcon\Commands\CommandsInterface;
+use Phalcon\Commands\CommandsException;
 
 /**
- * AllModels
+ * AllModels Command
  *
  * Create all models from a database
  *
- * @category 	Phalcon
- * @package 	Commands
- * @subpackage  Builtin
- * @copyright   Copyright (c) 2011-2014 Phalcon Team (team@phalconphp.com)
- * @license 	New BSD License
+ * @package     Phalcon\Commands\Builtin
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
-class AllModels extends Command implements CommandsInterface
+class AllModels extends Command
 {
-
     protected $_possibleParameters = array(
-        'config=s' 			=> "Configuration file  ",
-        'models=s' 			=> "Models directory ",
-        'schema=s'        	=> "Name of the schema. [optional]",
-        'namespace=s'       => "Model's namespace [optional]",
-        'extends=s'         => "Models extends [optional]",
-        'force'				=> "Force script to rewrite all the models.  ",
-        'get-set' 			=> "Attributes will be protected and have setters/getters.  ",
-        'doc' 				=> "Helps to improve code completion on IDEs  ",
-        'relations' 		=> "Possible relations defined according to convention.  ",
-        'fk' 				=> "Define any virtual foreign keys.  ",
-        'validations' 		=> "Define possible domain validation according to conventions.  ",
-        'directory=s' 		=> "Base path on which project will be created",
+        'config=s'    => "Configuration file  ",
+        'models=s'    => "Models directory ",
+        'schema=s'    => "Name of the schema. [optional]",
+        'namespace=s' => "Model's namespace [optional]",
+        'extends=s'   => "Models extends [optional]",
+        'force'       => "Force script to rewrite all the models.  ",
+        'get-set'     => "Attributes will be protected and have setters/getters.  ",
+        'doc'         => "Helps to improve code completion on IDEs  ",
+        'relations'   => "Possible relations defined according to convention.  ",
+        'fk'          => "Define any virtual foreign keys.  ",
+        'validations' => "Define possible domain validation according to conventions.  ",
+        'directory=s' => "Base path on which project will be created",
+        'mapcolumn'   => 'Get some code for map columns. [optional]',
+        'abstract'    => 'Abstract Model [optional]'
     );
 
     /**
+     * Executes the command
+     *
      * @param $parameters
+     * @return void
+     * @throws CommandsException
      */
     public function run($parameters)
     {
-
-        $path = '';
         if ($this->isReceivedOption('directory')) {
-            $path = $this->getOption('directory') . '/';
+            if (false == $this->path->isAbsolutePath($this->getOption('directory'))) {
+                $this->path->appendRootPath($this->getOption('directory'));
+            } else {
+                $this->path->setRootPath($this->getOption('directory'));
+            }
         }
 
-        $config = null;
-        if (!$this->isReceivedOption('models')) {
-
-            $fileType = file_exists($path . "app/config/config.ini") ? "ini" : "php";
-
-            if ($this->isReceivedOption('config')) {
-                $configPath = $path.$this->getOption('config')."/config.".$fileType;
+        if ($this->isReceivedOption('config')) {
+            if (false == $this->path->isAbsolutePath($this->getOption('config'))) {
+                $configPath = $this->path->getRootPath() . $this->getOption('config');
             } else {
-                $configPath = $path."app/config/config." . $fileType;
+                $configPath = $this->getOption('config');
             }
 
-            if ($fileType == 'ini') {
-                $config = new \Phalcon\Config\Adapter\Ini($configPath);
+            if (preg_match('/.*(:?\.ini)(?:\s)?$/i', $configPath)) {
+                $config = new ConfigIni($configPath);
             } else {
                 $config = include $configPath;
+
+                if (is_array($config)) {
+                    $config = new Config($config);
+                }
             }
 
-            if (file_exists($path.'public')) {
-                $modelsDir = 'public/'.$config->application->modelsDir;
-            } else {
-                $modelsDir = $config->application->modelsDir;
+        } else {
+            $config = $this->path->getConfig();
+        }
+
+        if (!$this->isReceivedOption('models')) {
+            if (!isset($config->application->modelsDir)) {
+                throw new CommandsException("Builder doesn't know where is the models directory.");
             }
+            $modelsDir = rtrim($config->application->modelsDir, '\\/') . DIRECTORY_SEPARATOR;
         } else {
             $modelsDir = $this->getOption('models');
         }
 
-        $modelBuilder = new \Phalcon\Builder\AllModels(array(
+        if (false == $this->path->isAbsolutePath($modelsDir)) {
+            $modelsDir = $this->path->getRootPath($modelsDir);
+        }
+
+        $modelBuilder = new AllModelsBuilder(array(
             'force' => $this->isReceivedOption('force'),
             'config' => $config,
             'schema' => $this->getOption('schema'),
@@ -102,7 +116,10 @@ class AllModels extends Command implements CommandsInterface
             'foreignKeys' => $this->isReceivedOption('fk'),
             'defineRelations' => $this->isReceivedOption('relations'),
             'genSettersGetters' => $this->isReceivedOption('get-set'),
-            'genDocMethods' => $this->isReceivedOption('doc')
+            'genDocMethods' => $this->isReceivedOption('doc'),
+            'modelsDir' => $modelsDir,
+            'mapColumn' => $this->isReceivedOption('mapcolumn'),
+            'abstract' => $this->isReceivedOption('abstract')
         ));
 
         $modelBuilder->build();
@@ -141,11 +158,10 @@ class AllModels extends Command implements CommandsInterface
     /**
      * Returns number of required parameters for this command
      *
-     * @return int
+     * @return integer
      */
     public function getRequiredParams()
     {
         return 0;
     }
-
 }

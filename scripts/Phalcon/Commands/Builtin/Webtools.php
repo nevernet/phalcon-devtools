@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -22,39 +22,34 @@ namespace Phalcon\Commands\Builtin;
 
 use Phalcon\Script\Color;
 use Phalcon\Commands\Command;
-use Phalcon\Commands\CommandsInterface;
 use Phalcon\Web\Tools;
+use Phalcon\Commands\CommandsException;
 
 /**
- * Phalcon\Commands\Webtools
+ * Webtools Command
  *
  * Enables/disables webtools in a project
+ *
+ * @package     Phalcon\Commands\Builtin
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
-class Webtools extends Command implements CommandsInterface
+class Webtools extends Command
 {
     /**
      * Possible command parameters
      *
      * @var array
      */
-    protected $params = array(
+    protected $_possibleParameters = array(
         'action=s' => 'Enables/Disables webtools in a project'
     );
 
     /**
-     * Return an array of possible command parameters
-     *
-     * @return array
-     */
-    public function getPossibleParams()
-    {
-        return $this->params;
-    }
-
-    /**
-     * Run the command
+     * Executes the command
      *
      * @param  array $parameters
+     * @throws CommandsException
      * @return void
      */
     public function run($parameters)
@@ -63,21 +58,23 @@ class Webtools extends Command implements CommandsInterface
         $directory = './';
 
         if ($action == 'enable') {
-            if (file_exists($directory . 'public/webtools.php'))
-                throw new \Exception('Webtools are already enabled!');
+            if (file_exists($directory . 'public/webtools.php')) {
+                throw new CommandsException('Webtools are already enabled!');
+            }
 
             Tools::install($directory);
 
             echo Color::success('Webtools successfully enabled!');
         } elseif ($action == 'disable') {
-            if ( ! file_exists($directory . 'public/webtools.php'))
-                throw new \Exception('Webtools are already disabled!');
+            if (!file_exists($directory . 'public/webtools.php')) {
+                throw new CommandsException('Webtools are already disabled!');
+            }
 
             Tools::uninstall($directory);
 
             echo Color::success('Webtools successfully disabled!');
         } else {
-            throw new \Exception('Invalid action!');
+            throw new CommandsException('Invalid action!');
         }
     }
 
@@ -88,13 +85,13 @@ class Webtools extends Command implements CommandsInterface
      */
     public function getCommands()
     {
-        return array('webtools');
+        return array('webtools', 'create-webtools');
     }
 
     /**
      * Check whether the command can be executed outside a Phalcon project
      *
-     * @return bool
+     * @return boolean
      */
     public function canBeExternal()
     {
@@ -118,13 +115,13 @@ class Webtools extends Command implements CommandsInterface
         echo Color::colorize('  ?', Color::FG_GREEN);
         echo Color::colorize("\tShows this help text") . PHP_EOL . PHP_EOL;
 
-        $this->printParameters($this->params);
+        $this->printParameters($this->_possibleParameters);
     }
 
     /**
      * Return the number of required parameters for this command
      *
-     * @return int
+     * @return integer
      */
     public function getRequiredParams()
     {

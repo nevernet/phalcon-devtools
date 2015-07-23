@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -23,42 +23,42 @@ namespace Phalcon\Commands\Builtin;
 use Phalcon\Builder;
 use Phalcon\Script\Color;
 use Phalcon\Commands\Command;
-use Phalcon\Commands\CommandsInterface;
 use Phalcon\Builder\Controller as ControllerBuilder;
 
 /**
- * CreateController
+ * Controller Command
  *
  * Create a handler for the command line.
  *
- * @category 	Phalcon
- * @package 	Command
- * @subpackage  Controller
- * @copyright   Copyright (c) 2011-2014 Phalcon Team (team@phalconphp.com)
- * @license 	New BSD License
+ * @package     Phalcon\Commands\Builtin
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
-class Controller extends Command implements CommandsInterface
+class Controller extends Command
 {
-
     protected $_possibleParameters = array(
-        'name=s' 		=> "Model name",
-        'namespace=s'	=> "Model's namespace [option]",
-        'directory=s'   => "Directory where the controller should be created [optional]",
-        'base-class=s'	=> "Base class to be inherited by the controller [optional]",
-        'force'			=> "Force to rewrite controller [optional]",
+        'name=s'        => "Controller name",
+        'namespace=s'   => "Controller's namespace [option]",
+        'directory=s'   => "Base path on which project is located [optional]",
+        'output=s'      => "Directory where the controller should be created [optional]",
+        'base-class=s'  => "Base class to be inherited by the controller [optional]",
+        'force'         => "Force to rewrite controller [optional]",
     );
 
     /**
-     * Run the command
+     * Executes the command
+     *
+     * @param $parameters
+     * @return string
      */
     public function run($parameters)
     {
-
         $controllerName = $this->getOption(array('name', 1));
 
         $controllerBuilder = new ControllerBuilder(array(
             'name' => $controllerName,
             'directory' => $this->getOption('directory'),
+            'controllersDir' => $this->getOption('output'),
             'namespace' => $this->getOption('namespace'),
             'baseClass' => $this->getOption('base-class'),
             'force' => $this->isReceivedOption('force')
@@ -70,7 +70,7 @@ class Controller extends Command implements CommandsInterface
     /**
      * Returns the command identifier
      *
-     * @return string
+     * @return array
      */
     public function getCommands()
     {
@@ -108,11 +108,10 @@ class Controller extends Command implements CommandsInterface
     /**
      * Returns number of required parameters for this command
      *
-     * @return int
+     * @return integer
      */
     public function getRequiredParams()
     {
         return 1;
     }
-
 }

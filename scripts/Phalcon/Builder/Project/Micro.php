@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -23,20 +23,23 @@ namespace Phalcon\Builder\Project;
 /**
  * Micro
  *
- * Builder to create micro application skeletons
+ * Builder to create Micro application skeletons
  *
- * @category  Phalcon
- * @package   Scripts
- * @copyright   Copyright (c) 2011-2014 Phalcon Team (team@phalconphp.com)
- * @license   New BSD License
+ * @package     Phalcon\Builder\Project
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
 class Micro extends ProjectBuilder
 {
-
-    private $_dirs = array(
+    /**
+     * Project directories
+     * @var array
+     */
+    protected $projectDirectories = array(
         'config',
         'models',
         'views',
+        'migrations',
         'public',
         'public/img',
         'public/css',
@@ -49,114 +52,109 @@ class Micro extends ProjectBuilder
     /**
      * Create .htaccess files by default of application
      *
+     * @return $this
      */
-    private function createHtaccessFiles($path, $templatePath)
+    private function createHtaccessFiles()
     {
-
-        if (file_exists($path . '.htaccess') == false) {
+        if (file_exists($this->options->get('projectPath') . '.htaccess') == false) {
             $code = '<IfModule mod_rewrite.c>'.PHP_EOL.
                 "\t".'RewriteEngine on'.PHP_EOL.
                 "\t".'RewriteRule  ^$ public/    [L]'.PHP_EOL.
                 "\t".'RewriteRule  (.*) public/$1 [L]'.PHP_EOL.
                 '</IfModule>';
-            file_put_contents($path.'.htaccess', $code);
+            file_put_contents($this->options->get('projectPath').'.htaccess', $code);
         }
 
-        if (file_exists($path . 'public/.htaccess') == false) {
-            file_put_contents($path.'public/.htaccess', file_get_contents($templatePath . '/project/micro/htaccess'));
+        if (file_exists($this->options->get('projectPath') . 'public/.htaccess') == false) {
+            file_put_contents(
+                $this->options->get('projectPath').'public/.htaccess',
+                file_get_contents($this->options->get('templatePath') . '/project/micro/htaccess')
+            );
         }
 
-        if (file_exists($path.'index.html') == false) {
+        if (file_exists($this->options->get('projectPath').'index.html') == false) {
             $code = '<html><body><h1>Mod-Rewrite is not enabled</h1><p>Please enable rewrite module on your web server to continue</body></html>';
-            file_put_contents($path.'index.html', $code);
+            file_put_contents($this->options->get('projectPath').'index.html', $code);
         }
 
+        return $this;
     }
 
     /**
      * Create view files by default
      *
+     * @return $this
      */
-    private function createIndexViewFiles($path, $templatePath)
+    private function createIndexViewFiles()
     {
-        $getFile = $templatePath . '/project/micro/views/index.phtml';
-        $putFile = $path.'views/index.phtml';
+        $getFile = $this->options->get('templatePath') . '/project/micro/views/index.phtml';
+        $putFile = $this->options->get('projectPath').'views/index.phtml';
         $this->generateFile($getFile, $putFile);
 
-        $getFile = $templatePath . '/project/micro/views/404.phtml';
-        $putFile = $path.'views/404.phtml';
+        $getFile = $this->options->get('templatePath') . '/project/micro/views/404.phtml';
+        $putFile = $this->options->get('projectPath').'views/404.phtml';
         $this->generateFile($getFile, $putFile);
+
+        return $this;
     }
 
     /**
      * Creates the configuration
      *
-     * @param $path
-     * @param $templatePath
-     * @param $name
-     * @param $type
+     * @return $this
      */
-    private function createConfig($path, $templatePath, $name, $type)
+    private function createConfig()
     {
-        $getFile = $templatePath . '/project/micro/config.' . $type;
-        $putFile = $path . 'config/config.' . $type;
-        $this->generateFile($getFile, $putFile, $name);
+        $type = $this->options->contains('useConfigIni') ? 'ini' : 'php';
 
-        $getFile = $templatePath . '/project/micro/services.php';
-        $putFile = $path . 'config/services.php';
-        $this->generateFile($getFile, $putFile, $name);
+        $getFile = $this->options->get('templatePath') . '/project/micro/config.' . $type;
+        $putFile = $this->options->get('projectPath') . 'config/config.' . $type;
+        $this->generateFile($getFile, $putFile, $this->options->get('name'));
 
-        $getFile = $templatePath . '/project/micro/loader.php';
-        $putFile = $path . 'config/loader.php';
-        $this->generateFile($getFile, $putFile, $name);
+        $getFile = $this->options->get('templatePath') . '/project/micro/services.php';
+        $putFile = $this->options->get('projectPath') . 'config/services.php';
+        $this->generateFile($getFile, $putFile, $this->options->get('name'));
 
-        $getFile = $templatePath . '/project/micro/app.php';
-        $putFile = $path . 'app.php';
-        $this->generateFile($getFile, $putFile, $name);
+        $getFile = $this->options->get('templatePath') . '/project/micro/loader.php';
+        $putFile = $this->options->get('projectPath') . 'config/loader.php';
+        $this->generateFile($getFile, $putFile, $this->options->get('name'));
+
+        $getFile = $this->options->get('templatePath') . '/project/micro/app.php';
+        $putFile = $this->options->get('projectPath') . 'app.php';
+        $this->generateFile($getFile, $putFile, $this->options->get('name'));
+
+        return $this;
     }
 
     /**
      * Create Bootstrap file by default of application
      *
-     * @param $path
-     * @param $templatePath
-     * @param $useIniConfig
+     * @return $this
      */
-    private function createBootstrapFile($path, $templatePath)
+    private function createBootstrapFile()
     {
-        $getFile = $templatePath . '/project/micro/index.php';
-        $putFile = $path . 'public/index.php';
+        $getFile = $this->options->get('templatePath') . '/project/micro/index.php';
+        $putFile = $this->options->get('projectPath') . 'public/index.php';
         $this->generateFile($getFile, $putFile);
+
+        return $this;
     }
 
     /**
      * Build project
      *
-     * @param $name
-     * @param $path
-     * @param $templatePath
-     * @param $options
-     *
      * @return bool
      */
-    public function build($name, $path, $templatePath, $options)
+    public function build()
     {
-
-        $this->buildDirectories($this->_dirs,$path);
-
-        $this->getVariableValues($options);
-
-        if (isset($options['useConfigIni']) && $options['useConfigIni']) {
-            $this->createConfig($path, $templatePath, $name, 'ini');
-        } else {
-            $this->createConfig($path, $templatePath, $name, 'php');
-        }
-
-        $this->createBootstrapFile($path, $templatePath);
-        $this->createHtaccessFiles($path, $templatePath);
-        $this->createIndexViewFiles($path, $templatePath);
+        $this
+            ->buildDirectories()
+            ->getVariableValues()
+            ->createConfig()
+            ->createBootstrapFile()
+            ->createHtaccessFiles()
+            ->createIndexViewFiles();
 
         return true;
     }
-
 }

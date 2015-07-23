@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -15,6 +15,7 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
+  |          Serghei Iakovlev <sadhooklay@gmail.com.com>                   |
   +------------------------------------------------------------------------+
 */
 
@@ -24,49 +25,48 @@ use Phalcon\Script;
 use Phalcon\Script\Color;
 use Phalcon\Events\Manager as EventsManager;
 use Phalcon\Filter;
+use Phalcon\Builder\Path;
 
 /**
- * Phalcon\Commands\Command
+ * Command Class
  *
- * Allows to implement devtools commands
+ * @package     Phalcon\Commands
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
-abstract class Command
+abstract class Command implements CommandsInterface
 {
-
     /**
      * Script
-     *
      * @var \Phalcon\Script
      */
     protected $_script;
 
     /**
      * Events Manager
-     *
      * @var \Phalcon\Events\Manager
      */
     protected $_eventsManager;
 
     /**
      * Output encoding of the script.
-     *
      * @var string
      */
     protected $_encoding = 'UTF-8';
 
     /**
      * Parameters received by the script.
-     *
      * @var string
      */
     protected $_parameters = array();
 
     /**
      * Possible prepared arguments.
-     *
      * @var array
      */
     protected $_preparedArguments = array();
+
+    protected $path;
 
     /**
      * Phalcon\Commands\Command
@@ -77,6 +77,8 @@ abstract class Command
     final public function __construct(Script $script, EventsManager $eventsManager)
     {
         $this->_script = $script;
+        $this->_eventsManager = $eventsManager;
+        $this->path = new Path();
     }
 
     /**
@@ -126,24 +128,21 @@ abstract class Command
      * @param  array             $possibleAlias
      * @return array
      * @throws CommandsException
+     *
+     * @todo Refactor
      */
-    public function parseParameters($parameters = array(), $possibleAlias = array())
+    public function parseParameters(array $parameters = array(), $possibleAlias = array())
     {
-
         if (count($parameters) == 0) {
             if (isset($this->_possibleParameters)) {
                 $parameters = $this->_possibleParameters;
             } else {
-                if (method_exists($this, 'getPossibleParams')) {
-                    $parameters = $this->getPossibleParams();
-                } else {
+                if (!method_exists($this, 'getPossibleParams')) {
                     throw new CommandsException("Cannot load possible parameters for script: " . get_class($this));
                 }
-            }
-        }
 
-        if (!is_array($parameters)) {
-            throw new CommandsException("Cannot load possible parameters for script: " . get_class($this));
+                $parameters = $this->getPossibleParams();
+            }
         }
 
         $arguments = array();
@@ -184,15 +183,15 @@ abstract class Command
                         'data-type' => $parameterParts[1]
                     );
                 } else {
-                    if (preg_match('/([a-zA-Z0-9]+)/', $parameter)) {
-                        $this->_preparedArguments[$parameter] = true;
-                        $arguments[$parameter] = array(
-                            'have-option' => false,
-                            'option-required' => false
-                        );
-                    } else {
+                    if (!preg_match('/([a-zA-Z0-9]+)/', $parameter)) {
                         throw new CommandsException("Invalid parameter '$parameter'");
                     }
+
+                    $this->_preparedArguments[$parameter] = true;
+                    $arguments[$parameter] = array(
+                        'have-option'     => false,
+                        'option-required' => false
+                    );
                 }
             }
         }
@@ -203,10 +202,8 @@ abstract class Command
         $numberArguments = count($_SERVER['argv']);
 
         for ($i = 1; $i < $numberArguments; $i++) {
-
             $argv = $_SERVER['argv'][$i];
             if (preg_match('#^([\-]{1,2})([a-zA-Z0-9][a-zA-Z0-9\-]*)(=(.*)){0,1}$#', $argv, $matches)) {
-
                 if (strlen($matches[1]) == 1) {
                     $param = substr($matches[2], 1);
                     $paramName = substr($matches[2], 0, 1);
@@ -220,9 +217,8 @@ abstract class Command
                 if (!isset($this->_preparedArguments[$paramName])) {
                     if (!isset($possibleAlias[$paramName])) {
                         throw new CommandsException("Unknown parameter '$paramName'");
-                    } else {
-                        $paramName = $possibleAlias[$paramName];
                     }
+                    $paramName = $possibleAlias[$paramName];
                 }
 
                 if (isset($arguments[$paramName])) {
@@ -233,13 +229,10 @@ abstract class Command
                     }
                     if ($arguments[$paramName]['have-option'] == false) {
                         $receivedParams[$paramName] = true;
-                    } else {
-                        if (isset($matches[4])) {
-                            $receivedParams[$paramName] = $matches[4];
-                        }
+                    } elseif (isset($matches[4])) {
+                        $receivedParams[$paramName] = $matches[4];
                     }
                 }
-
             } else {
                 $param = $argv;
                 if ($paramName != '') {
@@ -282,7 +275,7 @@ abstract class Command
     }
 
     /**
-     *  Sets the output encoding of the script.
+     * Sets the output encoding of the script.
      * @param $encoding
      *
      * @return $this
@@ -309,13 +302,14 @@ abstract class Command
 
     /**
      * Returns the value of an option received. If more parameters are taken as filters.
-     * @param      $option
-     * @param null $filters
-     * @param null $defaultValue
      *
-     * @return mixed|null
+     * @param mixed $option Option name or array of options
+     * @param mixed $filters Filter name or array of filters
+     * @param mixed $defaultValue Default value [Optional]
+     *
+     * @return mixed
      */
-    public function getOption($option, $filters=null, $defaultValue=null)
+    public function getOption($option, $filters = null, $defaultValue = null)
     {
         if (is_array($option)) {
             foreach ($option as $optionItem) {
@@ -445,11 +439,14 @@ abstract class Command
     }
 
     /**
-     * Return required parameters
+     * Checks whether the command has identifier
+     *
+     * @param string $identifier
+     *
+     * @return boolean
      */
-    public function getRequiredParams()
+    public function hasIdentifier($identifier)
     {
-
+        return in_array($identifier, $this->getCommands(), true);
     }
-
 }

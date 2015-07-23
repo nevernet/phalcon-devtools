@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,6 +20,9 @@
 
 namespace Phalcon\Mvc\Model;
 
+use Phalcon\Db;
+use Phalcon\Text;
+use Phalcon\Migrations;
 use Phalcon\Db\Column;
 use Phalcon\Mvc\Model\Migration\Profiler;
 use Phalcon\Mvc\Model\Exception;
@@ -30,34 +33,35 @@ use Phalcon\Events\Manager as EventsManager;
  *
  * Migrations of DML y DDL over databases
  *
- * @category 	Phalcon
- * @package 	Scripts
- * @copyright   Copyright (c) 2011-2014 Phalcon Team (team@phalconphp.com)
- * @license 	New BSD License
+ * @package     Phalcon\Mvc\Model
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
 class Migration
 {
-
     /**
      * Migration database connection
-     *
      * @var \Phalcon\Db
      */
     protected static $_connection;
 
     /**
      * Database configuration
-     *
      * @var \Phalcon\Config
      */
     private static $_databaseConfig;
 
     /**
      * Path where to save the migration
-     *
      * @var string
      */
     private static $_migrationPath = null;
+
+    /**
+     * Skip auto increment
+     * @var bool
+     */
+    private static $_skipAI = false;
 
     /**
      * Prepares component
@@ -68,21 +72,26 @@ class Migration
      */
     public static function setup($database)
     {
-
-        if ( ! isset($database->adapter))
+        if (!isset($database->adapter)) {
             throw new \Phalcon\Exception('Unspecified database Adapter in your configuration!');
+        }
 
         $adapter = '\\Phalcon\\Db\\Adapter\\Pdo\\' . $database->adapter;
 
-        if ( ! class_exists($adapter))
+        if (!class_exists($adapter)) {
             throw new \Phalcon\Exception('Invalid database Adapter!');
+        }
 
         $configArray = $database->toArray();
         unset($configArray['adapter']);
         self::$_connection = new $adapter($configArray);
         self::$_databaseConfig = $database;
 
-        if ( \Phalcon\Migrations::isConsole() ) {
+        if ($database->adapter == 'Mysql') {
+            self::$_connection->query('SET FOREIGN_KEY_CHECKS=0');
+        }
+
+        if (Migrations::isConsole()) {
             $profiler = new Profiler();
 
             $eventsManager = new EventsManager();
@@ -97,6 +106,16 @@ class Migration
 
             self::$_connection->setEventsManager($eventsManager);
         }
+    }
+
+    /**
+     * Set the skip auto increment value
+     *
+     * @param string $skip
+     */
+    public static function setSkipAutoIncrement($skip)
+    {
+        self::$_skipAI = $skip;
     }
 
     /**
@@ -116,10 +135,16 @@ class Migration
      * @param  string $exportData
      * @return array
      */
-    public static function generateAll($version, $exportData=null)
+    public static function generateAll($version, $exportData = null)
     {
         $classDefinition = array();
-        foreach (self::$_connection->listTables() as $table) {
+        if (self::$_databaseConfig->adapter == 'Postgresql') {
+            $tables = self::$_connection->listTables(isset(self::$_databaseConfig->schema) ? self::$_databaseConfig->schema : 'public');
+        } else {
+            $tables = self::$_connection->listTables();
+        }
+
+        foreach ($tables as $table) {
             $classDefinition[$table] = self::generate($version, $table, $exportData);
         }
 
@@ -138,21 +163,20 @@ class Migration
      */
     public static function generate($version, $table, $exportData=null)
     {
-
         $oldColumn = null;
         $allFields = array();
         $numericFields = array();
         $tableDefinition = array();
 
-                if (isset(self::$_databaseConfig->schema)) {
-                        $defaultSchema = self::$_databaseConfig->schema;
-                } elseif (isset(self::$_databaseConfig->adapter) && self::$_databaseConfig->adapter == 'Postgresql') {
-                        $defaultSchema =  'public';
-                } elseif (isset(self::$_databaseConfig->dbname)) {
-                        $defaultSchema = self::$_databaseConfig->dbname;
-                } else {
-                        $defaultSchema = null;
-                }
+        if (isset(self::$_databaseConfig->schema)) {
+            $defaultSchema = self::$_databaseConfig->schema;
+        } elseif (isset(self::$_databaseConfig->adapter) && self::$_databaseConfig->adapter == 'Postgresql') {
+            $defaultSchema =  'public';
+        } elseif (isset(self::$_databaseConfig->dbname)) {
+            $defaultSchema = self::$_databaseConfig->dbname;
+        } else {
+            $defaultSchema = null;
+        }
 
         $description = self::$_connection->describeColumns($table, $defaultSchema);
         foreach ($description as $field) {
@@ -211,14 +235,14 @@ class Migration
             }
 
             if ($field->getSize()) {
-                        $fieldDefinition[] = "'size' => " . $field->getSize();
-                } else {
-                    $fieldDefinition[] = "'size' => 1";
-                }
+                $fieldDefinition[] = "'size' => " . $field->getSize();
+            } else {
+                $fieldDefinition[] = "'size' => 1";
+            }
 
-                        if ($field->getScale()) {
-                                $fieldDefinition[] = "'scale' => " . $field->getScale();
-                        }
+            if ($field->getScale()) {
+                $fieldDefinition[] = "'scale' => " . $field->getScale();
+            }
 
             if ($oldColumn != null) {
                 $fieldDefinition[] = "'after' => '" . $oldColumn . "'";
@@ -244,7 +268,6 @@ class Migration
         $referencesDefinition = array();
         $references = self::$_connection->describeReferences($table, $defaultSchema);
         foreach ($references as $constraintName => $dbReference) {
-
             $columns = array();
             foreach ($dbReference->getColumns() as $column) {
                 $columns[] = "'" . $column . "'";
@@ -267,11 +290,14 @@ class Migration
         $optionsDefinition = array();
         $tableOptions = self::$_connection->tableOptions($table, $defaultSchema);
         foreach ($tableOptions as $optionName => $optionValue) {
+            if (self::$_skipAI && strtoupper($optionName) == "AUTO_INCREMENT") {
+                $optionValue = '';
+            }
             $optionsDefinition[] = "\t\t\t\t'" . strtoupper($optionName) . "' => '" . $optionValue . "'";
         }
 
         $classVersion = preg_replace('/[^0-9A-Za-z]/', '', $version);
-        $className = \Phalcon\Text::camelize($table) . 'Migration_'.$classVersion;
+        $className = Text::camelize($table) . 'Migration_'.$classVersion;
         $classData = "use Phalcon\\Db\\Column;
 use Phalcon\\Db\\Index;
 use Phalcon\\Db\\Reference;
@@ -296,7 +322,6 @@ class ".$className." extends Migration\n".
 
         $classData .= "\t\t)\n\t\t);\n\t}";
         if ($exportData == 'always' || $exportData == 'oncreate') {
-
             if ($exportData == 'oncreate') {
                 $classData .= "\n\n\tpublic function afterCreateTable() {\n";
             } else {
@@ -306,7 +331,7 @@ class ".$className." extends Migration\n".
 
             $fileHandler = fopen(self::$_migrationPath . '/' . $table . '.dat', 'w');
             $cursor = self::$_connection->query('SELECT * FROM ' . $table);
-            $cursor->setFetchMode(\Phalcon\Db::FETCH_ASSOC);
+            $cursor->setFetchMode(Db::FETCH_ASSOC);
             while ($row = $cursor->fetchArray()) {
                 $data = array();
                 foreach ($row as $key => $value) {
@@ -348,18 +373,19 @@ class ".$className." extends Migration\n".
         if (file_exists($filePath)) {
             $fileName = basename($filePath);
             $classVersion = preg_replace('/[^0-9A-Za-z]/', '', $version);
-            $className = \Phalcon\Text::camelize(str_replace('.php', '', $fileName)).'Migration_'.$classVersion;
+            $className = Text::camelize(str_replace('.php', '', $fileName)).'Migration_'.$classVersion;
             require_once $filePath;
-            if (class_exists($className)) {
-                $migration = new $className();
-                if (method_exists($migration, 'up')) {
-                    $migration->up();
-                    if (method_exists($migration, 'afterUp')) {
-                        $migration->afterUp();
-                    }
-                }
-            } else {
+
+            if (!class_exists($className)) {
                 throw new Exception('Migration class cannot be found ' . $className . ' at ' . $filePath);
+            }
+
+            $migration = new $className();
+            if (method_exists($migration, 'up')) {
+                $migration->up();
+                if (method_exists($migration, 'afterUp')) {
+                    $migration->afterUp();
+                }
             }
         }
     }
@@ -374,7 +400,6 @@ class ".$className." extends Migration\n".
      */
     public function morphTable($tableName, $definition)
     {
-
         if (isset(self::$_databaseConfig->dbname)) {
             $defaultSchema = self::$_databaseConfig->dbname;
         } else {
@@ -383,7 +408,6 @@ class ".$className." extends Migration\n".
 
         $tableExists = self::$_connection->tableExists($tableName, $defaultSchema);
         if (isset($definition['columns'])) {
-
             if (count($definition['columns']) == 0) {
                 throw new Exception('Table must have at least one column');
             }
@@ -397,7 +421,6 @@ class ".$className." extends Migration\n".
             }
 
             if ($tableExists == true) {
-
                 $localFields = array();
                 $description = self::$_connection->describeColumns($tableName, $defaultSchema);
                 foreach ($description as $field) {
@@ -408,10 +431,13 @@ class ".$className." extends Migration\n".
                     if (!isset($localFields[$fieldName])) {
                         self::$_connection->addColumn($tableName, $tableColumn->getSchemaName(), $tableColumn);
                     } else {
-
                         $changed = false;
 
                         if ($localFields[$fieldName]->getType() != $tableColumn->getType()) {
+                            $changed = true;
+                        }
+
+                        if ($localFields[$fieldName]->getSize() != $tableColumn->getSize()) {
                             $changed = true;
                         }
 
@@ -440,7 +466,6 @@ class ".$className." extends Migration\n".
 
         if (isset($definition['references'])) {
             if ($tableExists == true) {
-
                 $references = array();
                 foreach ($definition['references'] as $tableReference) {
                     $references[$tableReference->getName()] = $tableReference;
@@ -460,7 +485,6 @@ class ".$className." extends Migration\n".
                     if (!isset($localReferences[$tableReference->getName()])) {
                         self::$_connection->addForeignKey($tableName, $tableReference->getSchemaName(), $tableReference);
                     } else {
-
                         $changed = false;
                         if ($tableReference->getReferencedTable()!=$localReferences[$tableReference->getName()]['referencedTable']) {
                             $changed = true;
@@ -506,13 +530,11 @@ class ".$className." extends Migration\n".
                         self::$_connection->dropForeignKey($tableName, null, $referenceName);
                     }
                 }
-
             }
         }
 
         if (isset($definition['indexes'])) {
             if ($tableExists == true) {
-
                 $indexes = array();
                 foreach ($definition['indexes'] as $tableIndex) {
                     $indexes[$tableIndex->getName()] = $tableIndex;
@@ -561,7 +583,6 @@ class ".$className." extends Migration\n".
                 }
             }
         }
-
     }
 
     /**
@@ -585,5 +606,4 @@ class ".$className." extends Migration\n".
             self::$_connection->commit();
         }
     }
-
 }

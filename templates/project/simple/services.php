@@ -1,6 +1,11 @@
 <?php
+/**
+ * Services are globally registered in this file
+ *
+ * @var \Phalcon\Config $config
+ */
 
-use Phalcon\DI\FactoryDefault;
+use Phalcon\Di\FactoryDefault;
 use Phalcon\Mvc\View;
 use Phalcon\Mvc\Url as UrlResolver;
 use Phalcon\Db\Adapter\Pdo\Mysql as DbAdapter;
@@ -26,7 +31,7 @@ $di->set('url', function () use ($config) {
 /**
  * Setting up the view component
  */
-$di->set('view', function () use ($config) {
+$di->setShared('view', function () use ($config) {
 
     $view = new View();
 
@@ -48,18 +53,13 @@ $di->set('view', function () use ($config) {
     ));
 
     return $view;
-}, true);
+});
 
 /**
  * Database connection is created based in the parameters defined in the configuration file
  */
 $di->set('db', function () use ($config) {
-    return new DbAdapter(array(
-        'host' => $config->database->host,
-        'username' => $config->database->username,
-        'password' => $config->database->password,
-        'dbname' => $config->database->dbname
-    ));
+    return new DbAdapter($config->database->toArray());
 });
 
 /**
@@ -72,7 +72,7 @@ $di->set('modelsMetadata', function () {
 /**
  * Start the session the first time some component request the session service
  */
-$di->set('session', function () {
+$di->setShared('session', function () {
     $session = new SessionAdapter();
     $session->start();
 

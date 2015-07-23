@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,30 +20,50 @@
 
 namespace Phalcon\Builder;
 
-use Phalcon\Builder;
-use Phalcon\Builder\Component;
-use Phalcon\Script\Color;
-
 /**
  * Project
  *
  * Builder to create application skeletons
  *
- * @category 	Phalcon
- * @package 	Scripts
- * @copyright   Copyright (c) 2011-2014 Phalcon Team (team@phalconphp.com)
- * @license 	New BSD License
- * @version 	$Id: Application.php,v 7a54c57f039b 2011/10/19 23:41:19 andres $
+ * @package     Phalcon\Builder
+ * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
+ * @license     New BSD License
  */
 class Project extends Component
 {
+    CONST TYPE_MICRO   = 'micro';
+    CONST TYPE_SIMPLE  = 'simple';
+    CONST TYPE_MODULES = 'modules';
+    CONST TYPE_CLI     = 'cli';
 
+    /**
+     * Current Project Type
+     * @var null
+     */
+    private $currentType = null;
+
+    /**
+     * Available Project Types
+     * @var array
+     */
     private $_types = array(
-        'micro' => '\Phalcon\Builder\Project\Micro',
-        'simple' => '\Phalcon\Builder\Project\Simple',
-        'modules' => '\Phalcon\Builder\Project\Modules',
-        'cli' => '\Phalcon\Builder\Project\Cli',
+        self::TYPE_MICRO   => '\Phalcon\Builder\Project\Micro',
+        self::TYPE_SIMPLE  => '\Phalcon\Builder\Project\Simple',
+        self::TYPE_MODULES => '\Phalcon\Builder\Project\Modules',
+        self::TYPE_CLI     => '\Phalcon\Builder\Project\Cli',
     );
+
+    /**
+     * Create Builder object
+     *
+     * @param array $options Builder options
+     */
+    public function __construct(array $options = array())
+    {
+        $this->currentType = self::TYPE_SIMPLE;
+
+        parent::__construct($options);
+    }
 
     /**
      * Project build
@@ -53,65 +73,62 @@ class Project extends Component
      */
     public function build()
     {
-
-        $path = '';
-        if (isset($this->_options['directory'])) {
-            if ($this->_options['directory']) {
-                $path = $this->_options['directory'] . '/';
-            }
+        if ($this->options->contains('directory')) {
+            $this->path->setRootPath($this->options->get('directory'));
         }
 
-        if (isset($this->_options['templatePath'])) {
-            $templatePath = $this->_options['templatePath'];
-        } else {
-            $templatePath = str_replace('scripts/' . str_replace('\\', DIRECTORY_SEPARATOR, __CLASS__) . '.php', '', __FILE__) . 'templates';
+        $templatePath = str_replace('scripts/' . str_replace('\\', DIRECTORY_SEPARATOR, __CLASS__) . '.php', '', __FILE__) . 'templates';
+        if ($this->options->contains('templatePath')) {
+            $templatePath = $this->options->get('templatePath');
         }
 
-        if (file_exists($path.'.phalcon')) {
-            throw new BuilderException("Projects cannot be created inside Phalcon projects");
+        if ($this->path->hasPhalconDir()) {
+            throw new BuilderException('Projects cannot be created inside Phalcon projects.');
         }
 
-        if (isset($this->_options['type'])) {
-            $type = $this->_options['type'];
-            if (!isset($this->_types[$type])) {
-                $keys = array_keys($this->_types);
-                $keys = implode(" , ",$keys);
-                throw new BuilderException('Type "' . $type . '" is not a valid type. Choose among [' . $keys . '] ');
-            }
-        } else {
-            $type = 'simple';
+        $this->currentType = $this->options->get('type', self::TYPE_SIMPLE);
+
+        if (!isset($this->_types[$this->currentType])) {
+            throw new BuilderException(sprintf(
+                'Type "%s" is not a valid type. Choose among [%s] ',
+                $this->currentType,
+                implode(', ', array_keys($this->_types))
+            ));
         }
 
-        $name = null;
-        if (isset($this->_options['name'])) {
-            if ($this->_options['name']) {
-                $name = $this->_options['name'];
-                $path .= $this->_options['name'] . '/';
-                if (file_exists($path)) {
-                    throw new BuilderException("Directory " . $path . " already exists");
-                }
+        $builderClass = $this->_types[$this->currentType];
 
-                if (!@mkdir($path)) {
-                    throw new BuilderException("Unable to write to '$path'");
-                }
-            }
+        if ($this->options->contains('name')) {
+            $this->path->appendRootPath($this->options->get('name'));
         }
 
-        if (!is_writable($path)) {
-            throw new BuilderException("Directory " . $path . " is not writable");
+        if (file_exists($this->path->getRootPath())) {
+            throw new BuilderException(sprintf('Directory %s already exists.', $this->path->getRootPath()));
         }
 
-        $builderClass = $this->_types[$type];
+        if (!mkdir($this->path->getRootPath(), 0777, true)) {
+            throw new BuilderException(sprintf('Unable create project directory %s', $this->path->getRootPath()));
+        }
 
-        $builder = new $builderClass();
+        if (!is_writable($this->path->getRootPath())) {
+            throw new BuilderException(sprintf('Directory %s is not writable.', $this->path->getRootPath()));
+        }
 
-        $success = $builder->build($name, $path, $templatePath, $this->_options);
+        $this->options->offsetSet('templatePath', $templatePath);
+        $this->options->offsetSet('projectPath', $this->path->getRootPath());
 
-        if ($success===true) {
-            $this->_notifySuccess("Project '$name' was successfully created.");
+        /** @var \Phalcon\Builder\Project\ProjectBuilder $builder */
+        $builder = new $builderClass($this->options);
+
+        $success = $builder->build();
+
+        if ($success === true) {
+            $this->_notifySuccess(sprintf(
+                'Project "%s" was successfully created.',
+                $this->options->get('name')
+            ));
         }
 
         return $success;
     }
-
 }

@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -22,16 +22,13 @@ namespace Phalcon\Builder\Project;
 
 use Phalcon\Builder\Controller as ControllerBuilder;
 use Phalcon\Web\Tools;
-use Phalcon\Builder\Options;
 
 /**
  * Multi-Module
  *
  * Builder to create Multi-Module application skeletons
  *
- * @package     Phalcon\Builder\Project
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Builder\Project
  */
 class Modules extends ProjectBuilder
 {
@@ -66,10 +63,15 @@ class Modules extends ProjectBuilder
      */
     private function createControllerFile()
     {
+        $namespace = $this->options->get('name');
+        if (strtolower(trim($namespace)) == 'default') {
+            $namespace = 'MyDefault';
+        }
+
         $builder = new ControllerBuilder(array(
             'name'           => 'index',
             'controllersDir' => $this->options->get('projectPath') . 'apps/frontend/controllers/',
-            'namespace'      => ucfirst($this->options->get('name')) . '\Frontend\Controllers',
+            'namespace'      => ucfirst($namespace) . '\Frontend\Controllers',
             'baseClass'      => 'ControllerBase'
         ));
 
@@ -158,7 +160,7 @@ class Modules extends ProjectBuilder
     }
 
     /**
-     * Create ControllerBase
+     * Create Module
      *
      * @return $this
      */

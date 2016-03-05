@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -15,7 +15,7 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
-  |          Serghei Iakovlev <sadhooklay@gmail.com>                       |
+  |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
@@ -31,9 +31,7 @@ use DirectoryIterator;
  *
  * Component that allows you to write scripts to use CLI.
  *
- * @package     Phalcon
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon
  */
 class Script
 {
@@ -43,7 +41,6 @@ class Script
      */
     const COMPATIBLE_VERSION = 2000023;
 
-    const DOC_INSTALL_URL = ' http://phalconphp.com/documentation/install';
     const DOC_DOWNLOAD_URL = 'http://phalconphp.com/download';
 
     /**
@@ -111,6 +108,12 @@ class Script
         return $this->_commands;
     }
 
+    /**
+     * Dispatch the Command
+     *
+     * @param Command $command
+     * @return bool
+     */
     public function dispatch(Command $command)
     {
         // If beforeCommand fails abort

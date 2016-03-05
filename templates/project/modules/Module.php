@@ -5,7 +5,6 @@ namespace @@namespace@@\Frontend;
 use Phalcon\DiInterface;
 use Phalcon\Loader;
 use Phalcon\Mvc\View;
-use Phalcon\Db\Adapter\Pdo\Mysql as DbAdapter;
 use Phalcon\Mvc\ModuleDefinitionInterface;
 @@iniConfigImport@@
 
@@ -14,9 +13,9 @@ class Module implements ModuleDefinitionInterface
     /**
      * Registers an autoloader related to the module
      *
-     * @param DiInterface $dependencyInjector
+     * @param DiInterface $di
      */
-    public function registerAutoloaders(DiInterface $dependencyInjector = null)
+    public function registerAutoloaders(DiInterface $di = null)
     {
 
         $loader = new Loader();
@@ -32,9 +31,9 @@ class Module implements ModuleDefinitionInterface
     /**
      * Registers services related to the module
      *
-     * @param DiInterface $dependencyInjector
+     * @param DiInterface $di
      */
-    public function registerServices(DiInterface $dependencyInjector)
+    public function registerServices(DiInterface $di)
     {
         /**
          * Read configuration
@@ -55,7 +54,12 @@ class Module implements ModuleDefinitionInterface
          * Database connection is created based in the parameters defined in the configuration file
          */
         $di['db'] = function () use ($config) {
-            return new DbAdapter($config->toArray());
+            $config = $config->database->toArray();
+
+            $dbAdapter = '\Phalcon\Db\Adapter\Pdo\\' . $config['adapter'];
+            unset($config['adapter']);
+
+            return new $dbAdapter($config);
         };
     }
 }

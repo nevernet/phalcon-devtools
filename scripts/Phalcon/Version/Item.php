@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -25,9 +25,7 @@ namespace Phalcon\Version;
  *
  * Allows to manipulate version texts
  *
- * @package     Phalcon\Version
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Version
  */
 class Item
 {
@@ -137,8 +135,8 @@ class Item
      *
      * @param  string  $initialVersion
      * @param  string  $finalVersion
-     * @param  array   $versions       Item[]
-     * @return boolean
+     * @param  array   $versions Item[]
+     * @return Item[]
      */
     public static function between($initialVersion, $finalVersion, $versions)
     {
@@ -147,26 +145,30 @@ class Item
         if (!is_object($initialVersion)) {
             $initialVersion = new self($initialVersion);
         }
+
         if (!is_object($finalVersion)) {
             $finalVersion = new self($finalVersion);
         }
-        if ($initialVersion->getStamp() > $finalVersion->getStamp()) {
+
+        $betweenVersions = array();
+        if ($initialVersion->getStamp() == $finalVersion->getStamp()) {
+            return $betweenVersions; // nothing to do
+        }
+
+        if ($initialVersion->getStamp() < $finalVersion->getStamp()) {
+            $versions = self::sortAsc($versions);
+        } else {
             $versions = self::sortDesc($versions);
             list($initialVersion, $finalVersion) = array($finalVersion, $initialVersion);
         }
-        $betweenVersions = array();
-        if ($initialVersion->getStamp() == $finalVersion->getStamp()) {
-            return $betweenVersions;
-        }
 
         foreach ($versions as $version) {
-            /**
-             * @var Item $version
-             */
-            if (($version->getStamp() > $initialVersion->getStamp()) && ($version->getStamp() <= $finalVersion->getStamp())) {
+            /** @var Item $version */
+            if (($version->getStamp() >= $initialVersion->getStamp()) && ($version->getStamp() <= $finalVersion->getStamp())) {
                 $betweenVersions[] = $version;
             }
         }
+
         return $betweenVersions ;
     }
 

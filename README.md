@@ -1,6 +1,7 @@
 [![Latest Version](https://img.shields.io/packagist/v/phalcon/devtools.svg?style=flat-square)](https://github.com/phalcon/incubator/devtools)
+[![Software License](https://img.shields.io/badge/license-BSD--3-brightgreen.svg?style=flat-square)][1]
 [![Total Downloads](https://img.shields.io/packagist/dt/phalcon/devtools.svg?style=flat-square)](https://packagist.org/packages/phalcon/devtools)
-[![Software License](https://img.shields.io/badge/license-BSD--3-brightgreen.svg?style=flat-square)](https://github.com/phalcon/phalcon-devtools/blob/master/docs/LICENSE.txt)
+[![Daily Downloads](https://img.shields.io/packagist/dd/phalcon/devtools.svg?style=flat-square)](https://packagist.org/packages/phalcon/devtools)
 
 # Phalcon Devtools
 
@@ -54,37 +55,27 @@ Run the composer installer:
 php composer.phar install
 ```
 
-Create a symbolic link to the phalcon.php script:
+## Build `.phar`
 
+Install composer and box in a common location or in your project:
 ```bash
-ln -s ~/devtools/phalcon.php /usr/bin/phalcon
-chmod ugo+x /usr/bin/phalcon
+curl -s http://getcomposer.org/installer | php
+bin/composer install
 ```
 
-## Installation via PEAR
-
-Phalcon Devtools can be installed using PEAR. Since the current version of Devtools
-is in beta state, you might need to update your PEAR config. You can execute following to check
-your current state:
-
+Build phar file `phalcon-devtools`
 ```bash
-pear config-show | grep preferred_state | awk '{split($0, s, " "); print s[5]}'
+bin/box build -v
+chmod +xr ./phalcon.phar
+# Test it!
+php ./phalcon.phar
 ```
 
-If it prints "stable" you need to set the preferred_state to beta:
+## Installation via Git
 
-```bash
-pear config-set preferred_state beta
-```
+Phalcon Devtools can be installed by using Git.
 
-After that just discover the channel and install the package:
-
-```bash
-pear channel-discover pear.phalconphp.com
-pear install phalcon/Devtools
-```
-
-Alternatively you can just clone the repo and checkout the current branch
+Just clone the repo and checkout the current branch:
 
 ```bash
 cd ~
@@ -106,26 +97,29 @@ chmod ugo+x /usr/bin/phalcon
 To get a list of available commands just execute following:
 
 ```bash
-$ phalcon commands
+phalcon commands help
 ```
 
 This command should display something similar to:
 
-```bash
-Phalcon DevTools (2.0.1)
+```sh
+$ phalcon list ?
+
+Phalcon DevTools (2.0.9)
 
 Help:
   Lists the commands available in Phalcon devtools
 
 Available commands:
-  commands (alias of: list, enumerate)
-  controller (alias of: create-controller)
-  model (alias of: create-model)
-  all-models (alias of: create-all-models)
-  project (alias of: create-project)
-  scaffold (alias of: create-scaffold)
-  migration (alias of: create-migration)
-  webtools (alias of: create-webtools)
+  commands         (alias of: list, enumerate)
+  controller       (alias of: create-controller)
+  module           (alias of: create-module)
+  model            (alias of: create-model)
+  all-models       (alias of: create-all-models)
+  project          (alias of: create-project)
+  scaffold         (alias of: create-scaffold)
+  migration        (alias of: create-migration)
+  webtools         (alias of: create-webtools)
 ```
 
 ## Update WebTools from old version
@@ -155,15 +149,18 @@ $ phalcon webtools --action=enable
 Should add 'adapter' parameter in your db config file (if you use not Mysql database). For PostgreSql will be
 
 ```php
-$config = array(
+$config = [
   "host"     => "localhost",
   "dbname"   => "my_db_name",
   "username" => "my_db_user",
   "password" => "my_db_user_password",
-  "adapter"  => "Postgresql",
-);
+  "adapter"  => "Postgresql"
+];
 ```
 
 ## License
 
-Phalcon Developer Tools is open source software licensed under the New BSD License. See the docs/LICENSE.txt file for more.
+Phalcon Developer Tools is open source software licensed under the [New BSD License][1].
+© Phalcon Framework Team and contributors
+
+[1]: docs/LICENSE.md

@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -30,28 +30,34 @@ use Phalcon\Builder\Controller as ControllerBuilder;
  *
  * Create a handler for the command line.
  *
- * @package     Phalcon\Commands\Builtin
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Commands\Builtin
  */
 class Controller extends Command
 {
-    protected $_possibleParameters = array(
-        'name=s'        => "Controller name",
-        'namespace=s'   => "Controller's namespace [option]",
-        'directory=s'   => "Base path on which project is located [optional]",
-        'output=s'      => "Directory where the controller should be created [optional]",
-        'base-class=s'  => "Base class to be inherited by the controller [optional]",
-        'force'         => "Force to rewrite controller [optional]",
-    );
+    /**
+     * {@inheritdoc}
+     *
+     * @return array
+     */
+    public function getPossibleParams()
+    {
+        return array(
+            'name=s'        => 'Controller name',
+            'namespace=s'   => "Controller's namespace [option]",
+            'directory=s'   => 'Base path on which project is located [optional]',
+            'output=s'      => 'Directory where the controller should be created [optional]',
+            'base-class=s'  => 'Base class to be inherited by the controller [optional]',
+            'force'         => 'Force to rewrite controller [optional]',
+        );
+    }
 
     /**
-     * Executes the command
+     * {@inheritdoc}
      *
-     * @param $parameters
-     * @return string
+     * @param array $parameters
+     * @return mixed
      */
-    public function run($parameters)
+    public function run(array $parameters)
     {
         $controllerName = $this->getOption(array('name', 1));
 
@@ -68,7 +74,7 @@ class Controller extends Command
     }
 
     /**
-     * Returns the command identifier
+     * {@inheritdoc}
      *
      * @return array
      */
@@ -78,15 +84,7 @@ class Controller extends Command
     }
 
     /**
-     * Checks whether the command can be executed outside a Phalcon project
-     */
-    public function canBeExternal()
-    {
-        return false;
-    }
-
-    /**
-     * Prints the help for current command.
+     * {@inheritdoc}
      *
      * @return void
      */
@@ -99,14 +97,14 @@ class Controller extends Command
         print Color::colorize('  controller [name] [directory]', Color::FG_GREEN) . PHP_EOL . PHP_EOL;
 
         print Color::head('Arguments:') . PHP_EOL;
-        print Color::colorize('  ?', Color::FG_GREEN);
+        print Color::colorize('  help', Color::FG_GREEN);
         print Color::colorize("\tShows this help text") . PHP_EOL . PHP_EOL;
 
-        $this->printParameters($this->_possibleParameters);
+        $this->printParameters($this->getPossibleParams());
     }
 
     /**
-     * Returns number of required parameters for this command
+     * {@inheritdoc}
      *
      * @return integer
      */

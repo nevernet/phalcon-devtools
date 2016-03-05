@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -15,7 +15,7 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
-  |          Serghei Iakovlev <sadhooklay@gmail.com>                       |
+  |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
@@ -177,7 +177,7 @@ class ControllerBase extends Controller
         $config = Tools::getConfig()->offsetGet('application');
 
         $dirs = array('modelsDir', 'controllersDir', 'migrationsDir');
-        $this->path->setRootPath(dirname(getcwd()));
+        $this->path->setRootPath(dirname($_SERVER["SCRIPT_FILENAME"]));
         $projectPath = $this->path->getRootPAth();
 
         foreach ($dirs as $dirName) {

@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,16 +20,15 @@
 
 namespace Phalcon\Builder;
 
-use Phalcon\Text as Utils;
+use Phalcon\Utils;
+use SplFileObject;
 
 /**
  * Controller Class
  *
  * Builder to generate controller
  *
- * @package     Phalcon\Builder
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Builder
  */
 class Controller extends Component
 {
@@ -96,20 +95,23 @@ class Controller extends Component
         $code = "<?php\n\n".$namespace."class ".$className."Controller extends ".$baseClass."\n{\n\n\tpublic function indexAction()\n\t{\n\n\t}\n\n}\n\n";
         $code = str_replace("\t", "    ", $code);
 
-        if (file_exists($controllerPath)) {
-            if ($this->options->contains('force') && !is_writable($controllerPath)) {
-                throw new BuilderException(sprintf('Unable to write to %s. Check write-access of a file.', $controllerPath));
-            } else {
-                throw new BuilderException(sprintf('The Controller %s already exists.', $name));
-            }
+        if (file_exists($controllerPath) && !$this->options->contains('force')) {
+            throw new BuilderException(sprintf('The Controller %s already exists.', $name));
         }
 
-        if (!@file_put_contents($controllerPath, $code)) {
-            throw new BuilderException(sprintf('Unable to write to %s.', $controllerPath));
+        $controller = new SplFileObject($controllerPath, 'w');
+
+        if (!$controller->fwrite($code)) {
+            throw new BuilderException(
+                sprintf('Unable to write to %s. Check write-access of a file.', $controller->getRealPath())
+            );
         }
 
         if ($this->isConsole()) {
-            $this->_notifySuccess(sprintf('Controller "%s" was successfully created.', $name));
+            $this->_notifySuccess(
+                sprintf('Controller "%s" was successfully created.', $name)
+            );
+            echo $controller->getRealPath(), PHP_EOL;
         }
 
         return $className . 'Controller.php';

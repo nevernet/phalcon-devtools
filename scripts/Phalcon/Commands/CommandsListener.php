@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,15 +20,12 @@
 
 namespace Phalcon\Commands;
 
-use Phalcon\Script;
 use Phalcon\Events\Event;
 
 /**
  * Commands Listener
  *
- * @package     Phalcon\Commands
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Commands
  */
 class CommandsListener
 {
@@ -45,13 +42,18 @@ class CommandsListener
     {
         if ($command->canBeExternal() == false) {
             $path = $command->getOption('directory');
-            if (!file_exists($path . '.phalcon')) {
-                throw new CommandsException("This command should be invoked inside a Phalcon project directory");
+            if (!file_exists($path.'.phalcon') || !is_dir($path.'.phalcon')) {
+                throw new CommandsException('This command should be invoked inside a Phalcon project directory.');
             }
         }
 
         $parameters = $command->parseParameters();
-        if (count($parameters) < ($command->getRequiredParams() + 1) || $command->isReceivedOption('help') || $command->getOption(1) == 'help') {
+
+        if (
+            count($parameters) < ($command->getRequiredParams() + 1) ||
+            $command->isReceivedOption(['help', '?']) ||
+            in_array($command->getOption(1), ['help', '?'])
+        ) {
             $command->getHelp();
 
             return false;

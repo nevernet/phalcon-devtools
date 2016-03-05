@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -13,7 +13,7 @@
   | obtain it through the world-wide-web, please send an email             |
   | to license@phalconphp.com so we can send you a copy immediately.       |
   +------------------------------------------------------------------------+
-  | Authors: Serghei Iakovlev <sadhooklay@gmail.com>                       |
+  | Authors: Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
@@ -92,9 +92,9 @@ class Path
         return $this;
     }
 
-    public function getRootPath($pathPath = null)
+    public function getRootPath($path = null)
     {
-        return $this->rootPath . ($pathPath ? trim($pathPath, '\\/') . DIRECTORY_SEPARATOR : '');
+        return $this->rootPath . ($path ? trim($path, '\\/') . DIRECTORY_SEPARATOR : '');
     }
 
     public function appendRootPath($pathPath)

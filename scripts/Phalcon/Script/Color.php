@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -25,15 +25,10 @@ namespace Phalcon\Script;
  *
  * Allows to generate messages using colors on xterm, ddterm, linux, etc.
  *
- * @category 	Phalcon
- * @package 	Script
- * @subpackage  Color
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license 	New BSD License
+ * @package Phalcon\Script
  */
 final class Color
 {
-
     const FG_BLACK = 1;
     const FG_DARK_GRAY = 2;
     const FG_BLUE = 3;
@@ -119,17 +114,6 @@ final class Color
         self::AT_REVERSE   => '7',
         self::AT_NONDISP   => '8',
         self::AT_STRIKE    => '9',
-);
-
-    /**
-     * Supported terminals
-     *
-     * @var string
-     */
-    private static $_supportedShells = array(
-        'xterm' => true,
-        'xterm-256color' => true,
-        'xterm-color' => true,
     );
 
     /**
@@ -139,21 +123,11 @@ final class Color
      */
     public static function isSupportedShell()
     {
-        $flag = false;
-
-        if (isset($_ENV['TERM'])) {
-            if (isset(self::$_supportedShells[$_ENV['TERM']])) {
-                $flag = true;
-            }
-        } else {
-            if (isset($_SERVER['TERM'])) {
-                if (isset(self::$_supportedShells[$_SERVER['TERM']])) {
-                    $flag = true;
-                }
-            }
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return false !== getenv('ANSICON') || 'ON' === getenv('ConEmuANSI') || 'xterm' === getenv('TERM');
         }
 
-        return $flag;
+        return defined('STDOUT') && function_exists('posix_isatty') && posix_isatty(STDOUT);
     }
 
     /**

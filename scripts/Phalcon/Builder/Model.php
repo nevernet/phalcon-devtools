@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -21,7 +21,7 @@
 namespace Phalcon\Builder;
 
 use Phalcon\Db\Column;
-use Phalcon\Text as Utils;
+use Phalcon\Utils;
 use ReflectionException;
 use Phalcon\Generator\Snippet;
 use ReflectionClass;
@@ -31,9 +31,7 @@ use ReflectionClass;
  *
  * Builder to generate models
  *
- * @package     Phalcon\Builder
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Builder
  */
 class Model extends Component
 {
@@ -58,10 +56,10 @@ class Model extends Component
      * @param array $options Builder options
      * @throws BuilderException
      */
-    public function __construct(array $options = array())
+    public function __construct(array $options)
     {
         if (!isset($options['name'])) {
-            throw new BuilderException("Please, specify the model name");
+            throw new BuilderException('Please, specify the model name');
         }
 
         if (!isset($options['force'])) {
@@ -118,6 +116,12 @@ class Model extends Component
         }
     }
 
+    /**
+     * Module build
+     *
+     * @return mixed
+     * @throws \Phalcon\Builder\BuilderException
+     */
     public function build()
     {
         if (!$this->options->contains('name')) {
@@ -131,10 +135,11 @@ class Model extends Component
         $config = $this->getConfig();
 
         if (!$modelsDir = $this->options->get('modelsDir')) {
-            if (!isset($config->application->modelsDir)) {
+            if (!$config->get('application') || !isset($config->get('application')->modelsDir)) {
                 throw new BuilderException("Builder doesn't know where is the models directory.");
             }
-            $modelsDir = $config->application->modelsDir;
+
+            $modelsDir = $config->get('application')->modelsDir;
         }
 
         $modelsDir = rtrim($modelsDir, '/\\') . DIRECTORY_SEPARATOR;
@@ -196,21 +201,20 @@ class Model extends Component
         $db = new $adapterName($configArray);
 
         $initialize = array();
+
         if ($this->options->contains('schema')) {
             $schema = $this->options->get('schema');
-            if ($schema != $config->database->dbname) {
-                $initialize[] = $this->snippet->getThisMethod('setSchema', $schema);
-            }
-        } elseif ($adapter == 'Postgresql') {
-            $schema = 'public';
-            $initialize[] = $initialize[] = $this->snippet->getThisMethod('setSchema', $schema);
         } else {
-            $schema = $config->database->dbname;
+            $schema = Utils::resolveDbSchema($config->database);
+        }
+
+        if ($schema && $schema != $config->database->dbname) {
+            $initialize['schema'] = $this->snippet->getThisMethod('setSchema', $schema);
         }
 
         $table = $this->options->get('name');
-        if ($this->options->get('fileName') != $this->options->get('name')) {
-            $initialize[] = $this->snippet->getThisMethod('setSource', '\'' . $table . '\'');
+        if ($this->options->get('fileName') != $table && !isset($initialize['schema'])) {
+            $initialize[] = $this->snippet->getThisMethod('setSource', $table);
         }
 
         if (!$db->tableExists($table, $schema)) {
@@ -322,6 +326,7 @@ class Model extends Component
                     foreach ($fields as $field) {
                         /** @var \Phalcon\Db\Column $field */
                         $methodName = Utils::camelize($field->getName());
+
                         $possibleMethods['set' . $methodName] = true;
                         $possibleMethods['get' . $methodName] = true;
                     }
@@ -433,18 +438,20 @@ class Model extends Component
         $setters = array();
         $getters = array();
         foreach ($fields as $field) {
+            if (array_key_exists(strtolower($field->getName()), $exclude)) {
+                continue;
+            }
             $type = $this->getPHPType($field->getType());
             if ($useSettersGetters) {
-                if (!array_key_exists(strtolower($field->getName()), $exclude)) {
-                    $attributes[] = $this->snippet->getAttributes($type, 'protected', $field->getName());
-                    $setterName = Utils::camelize($field->getName());
-                    $setters[] = $this->snippet->getSetter($field->getName(), $type, $setterName);
+                $attributes[] = $this->snippet->getAttributes($type, 'protected', $field->getName());
+                $methodName = Utils::camelize($field->getName());
 
-                    if (isset($this->_typeMap[$type])) {
-                        $getters[] = $this->snippet->getGetterMap($field->getName(), $type, $setterName, $this->_typeMap[$type]);
-                    } else {
-                        $getters[] = $this->snippet->getGetter($field->getName(), $type, $setterName);
-                    }
+                $setters[] = $this->snippet->getSetter($field->getName(), $type, $methodName);
+
+                if (isset($this->_typeMap[$type])) {
+                    $getters[] = $this->snippet->getGetterMap($field->getName(), $type, $methodName, $this->_typeMap[$type]);
+                } else {
+                    $getters[] = $this->snippet->getGetter($field->getName(), $type, $methodName);
                 }
             } else {
                 $attributes[] = $this->snippet->getAttributes($type, 'public', $field->getName());

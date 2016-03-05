@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -15,7 +15,7 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
-  |          Serghei Iakovlev <sadhooklay@gmail.com.com>                   |
+  |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
@@ -26,13 +26,15 @@ use Phalcon\Script\Color;
 use Phalcon\Events\Manager as EventsManager;
 use Phalcon\Filter;
 use Phalcon\Builder\Path;
+use Phalcon\Config\Adapter\Ini as IniConfig;
+use Phalcon\Config\Adapter\Json as JsonConfig;
+use Phalcon\Config\Adapter\Yaml as YamlConfig;
+use Phalcon\Config;
 
 /**
  * Command Class
  *
- * @package     Phalcon\Commands
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Commands
  */
 abstract class Command implements CommandsInterface
 {
@@ -56,7 +58,7 @@ abstract class Command implements CommandsInterface
 
     /**
      * Parameters received by the script.
-     * @var string
+     * @var array
      */
     protected $_parameters = array();
 
@@ -122,11 +124,93 @@ abstract class Command implements CommandsInterface
     }
 
     /**
+     * @param string $path Config path
+     *
+     * @return \Phalcon\Config
+     * @throws CommandsException
+     */
+    protected function getConfig($path)
+    {
+        foreach (array('app/config/', 'config/') as $configPath) {
+            if (file_exists($path . $configPath. "config.ini")) {
+                return new IniConfig($path . $configPath. "/config.ini");
+            } elseif (file_exists($path . $configPath. "/config.php")) {
+                $config = include($path . $configPath. "/config.php");
+                if (is_array($config)) {
+                    $config = new Config($config);
+                }
+
+                return $config;
+            } elseif (file_exists($path . $configPath. "/config.json")) {
+                return new JsonConfig($path . $configPath. "/config.json");
+            } elseif (file_exists($path . $configPath. "/config.yaml")) {
+                return new YamlConfig($path . $configPath. "/config.yaml");
+            }
+        }
+
+        $directory = new \RecursiveDirectoryIterator('.');
+        $iterator = new \RecursiveIteratorIterator($directory);
+        foreach ($iterator as $f) {
+            if (preg_match('/config\.php$/i', $f->getPathName())) {
+                $config = include($f->getPathName());
+                if (is_array($config)) {
+                    $config = new Config($config);
+                }
+
+                return $config;
+            } elseif (preg_match('/config\.ini$/i', $f->getPathName())) {
+                return new IniConfig($f->getPathName());
+            } elseif (preg_match('/config\.json$/i', $f->getPathName())) {
+                return new JsonConfig($f->getPathName());
+            } elseif (preg_match('/config\.yaml$/i', $f->getPathName())) {
+                return new YamlConfig($f->getPathName());
+            }
+        }
+
+        throw new CommandsException("Builder can't locate the configuration file.");
+    }
+
+    /**
+     * Determines correct adapter by file name
+     * and load config
+     *
+     * @param string $fileName Config file name
+     *
+     * @return \Phalcon\Config
+     * @throws CommandsException
+     */
+    protected function loadConfig($fileName)
+    {
+        $pathInfo = pathinfo($fileName);
+
+        if (isset($pathInfo['extension'])) {
+            $extension = strtolower(trim($pathInfo['extension']));
+            if ($extension === 'php') {
+                $config = include($fileName);
+                if (is_array($config)) {
+                    $config = new Config($config);
+                }
+
+                return $config;
+            } elseif ($extension === 'ini') {
+                return new IniConfig($fileName);
+            } elseif ($extension === 'json') {
+                return new JsonConfig($fileName);
+            } elseif ($extension === 'json') {
+                return new YamlConfig($fileName);
+            }
+        }
+
+        throw new CommandsException("Builder can't locate the configuration file.");
+    }
+
+    /**
      * Parse the parameters passed to the script.
      *
-     * @param  array             $parameters
-     * @param  array             $possibleAlias
+     * @param  array $parameters    Command parameters
+     * @param  array $possibleAlias Command aliases
      * @return array
+     *
      * @throws CommandsException
      *
      * @todo Refactor
@@ -134,15 +218,7 @@ abstract class Command implements CommandsInterface
     public function parseParameters(array $parameters = array(), $possibleAlias = array())
     {
         if (count($parameters) == 0) {
-            if (isset($this->_possibleParameters)) {
-                $parameters = $this->_possibleParameters;
-            } else {
-                if (!method_exists($this, 'getPossibleParams')) {
-                    throw new CommandsException("Cannot load possible parameters for script: " . get_class($this));
-                }
-
-                $parameters = $this->getPossibleParams();
-            }
+            $parameters = $this->getPossibleParams();
         }
 
         $arguments = array();
@@ -301,10 +377,33 @@ abstract class Command implements CommandsInterface
     }
 
     /**
-     * Returns the value of an option received. If more parameters are taken as filters.
+     * Returns all received options.
+     *
+     * @param mixed $filters Filter name or array of filters [Optional]
+     *
+     * @return array
+     */
+    public function getOptions($filters = null)
+    {
+        if (!$filters) {
+            return $this->_parameters;
+        }
+
+        $result = [];
+
+        foreach ($this->_parameters as $param) {
+            $filter = new Filter();
+            $result[] = $filter->sanitize($param, $filters);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns the value of an option received.
      *
      * @param mixed $option Option name or array of options
-     * @param mixed $filters Filter name or array of filters
+     * @param mixed $filters Filter name or array of filters [Optional]
      * @param mixed $defaultValue Default value [Optional]
      *
      * @return mixed
@@ -325,19 +424,19 @@ abstract class Command implements CommandsInterface
             }
 
             return $defaultValue;
-        } else {
-            if (isset($this->_parameters[$option])) {
-                if ($filters !== null) {
-                    $filter = new Filter();
-
-                    return $filter->sanitize($this->_parameters[$option], $filters);
-                }
-
-                return $this->_parameters[$option];
-            } else {
-                return $defaultValue;
-            }
         }
+
+        if (isset($this->_parameters[$option])) {
+            if ($filters !== null) {
+                $filter = new Filter();
+
+                return $filter->sanitize($this->_parameters[$option], $filters);
+            }
+
+            return $this->_parameters[$option];
+        }
+
+        return $defaultValue;
     }
 
     /**
@@ -348,7 +447,17 @@ abstract class Command implements CommandsInterface
      */
     public function isReceivedOption($option)
     {
-        return isset($this->_parameters[$option]);
+        if (!is_array($option)) {
+            $option = [$option];
+        }
+
+        foreach ($option as $op) {
+            if (isset($this->_parameters[$op])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -421,7 +530,7 @@ abstract class Command implements CommandsInterface
     /**
      * Returns the processed parameters
      *
-     * @return string
+     * @return array
      */
     public function getParameters()
     {
@@ -429,7 +538,7 @@ abstract class Command implements CommandsInterface
     }
 
     /**
-     * By default all commands must be external
+     * {@inheritdoc}
      *
      * @return boolean
      */
@@ -439,7 +548,7 @@ abstract class Command implements CommandsInterface
     }
 
     /**
-     * Checks whether the command has identifier
+     * {@inheritdoc}
      *
      * @param string $identifier
      *

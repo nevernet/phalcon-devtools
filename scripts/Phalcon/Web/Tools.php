@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -29,17 +29,17 @@ use Phalcon\Version;
 use Phalcon\Script;
 use Phalcon\Di\FactoryDefault;
 use Phalcon\Mvc\View;
-use Phalcon\Config\Adapter\Ini as ConfigIni;
 use Phalcon\Config;
+use Phalcon\Config\Adapter\Ini as ConfigIni;
+use Phalcon\Config\Adapter\Yaml as YamlConfig;
+use Phalcon\Config\Adapter\Json as JsonConfig;
 
 /**
  * Phalcon\Web\Tools
  *
  * Allows to use Phalcon Developer Tools with a web interface
  *
- * @package     Phalcon\Web
- * @copyright   Copyright (c) 2011-2015 Phalcon Team (team@phalconphp.com)
- * @license     New BSD License
+ * @package Phalcon\Web
  */
 class Tools
 {
@@ -214,10 +214,8 @@ class Tools
     {
         if (!extension_loaded('phalcon')) {
             throw new \Exception(
-                sprintf(
-                    "Phalcon extension isn't installed, follow these instructions to install it: %s",
-                    Script::DOC_INSTALL_URL
-                )
+                "Phalcon extension isn't installed, follow these instructions to install it: " .
+                'https://docs.phalconphp.com/en/latest/reference/install.html'
             );
         }
 
@@ -238,30 +236,34 @@ class Tools
             $basePath . '/apps/backend/config/',
         );
 
-        $readed = false;
+        $config = null;
 
         foreach ($configDirs as $configPath) {
             if (file_exists($configPath . 'config.ini')) {
                 $config = new ConfigIni($configPath . 'config.ini');
-                $readed = true;
 
                 break;
-            } else {
-                if (file_exists($configPath . 'config.php')) {
-                    $config = include($configPath . 'config.php');
-                    if (is_array($config)) {
-                        $config = new Config($config);
-                    }
-                    $readed = true;
-
-                    break;
+            } elseif (file_exists($configPath . 'config.php')) {
+                $config = include($configPath . 'config.php');
+                if (is_array($config)) {
+                    $config = new Config($config);
                 }
+
+                break;
+            } elseif (file_exists($configPath . 'config.yaml')) {
+                $config = new YamlConfig($configPath . 'config.yaml');
+
+                break;
+            } elseif (file_exists($configPath . 'config.json')) {
+                $config = new JsonConfig($configPath . 'config.json');
+
+                break;
             }
         }
 
-        if ($readed === false) {
+        if (null === $config) {
             throw new Exception(sprintf(
-                'Configuration file could not be loaded! Scanned dirs: %s',
+                "Configuration file couldn't be loaded! Scanned dirs: %s",
                 implode(', ', $configDirs)
             ));
         }
@@ -291,23 +293,32 @@ class Tools
         try {
             $di = new FactoryDefault();
 
-            $di->set('view', function () use ($path) {
+            $di->setShared('view', function () use ($path) {
                 $view = new View();
                 $view->setViewsDir($path . '/scripts/Phalcon/Web/Tools/views/');
 
                 return $view;
             });
 
-            $di->set('config', $config);
+            $di->setShared('config', $config);
 
-            $di->set('url', function () use ($config) {
+            $di->setShared('url', function () use ($config) {
                 $url = new Url();
-                $url->setBaseUri($config->application->baseUri);
+
+                if (isset($config->application->baseUri)) {
+                    $baseUri = $config->application->baseUri;
+                } elseif (isset($config->baseUri)) {
+                    $baseUri = $config->baseUri;
+                } else {
+                    $baseUri = '/';
+                }
+
+                $url->setBaseUri($baseUri);
 
                 return $url;
             });
 
-            $di->set('flash', function () {
+            $di->setShared('flash', function () {
                 return new Flash(array(
                     'error'   => 'alert alert-danger',
                     'success' => 'alert alert-success',
@@ -316,7 +327,7 @@ class Tools
                 ));
             });
 
-            $di->set('db', function () use ($config) {
+            $di->setShared('db', function () use ($config) {
 
                 if (isset($config->database->adapter)) {
                     $adapter = $config->database->adapter;
@@ -357,25 +368,33 @@ class Tools
      *
      * @param  string     $path
      * @return bool
-     * @throws \Exception if document root cannot be located
+     * @throws Exception if document root cannot be located
      */
     public static function install($path)
     {
         $path = realpath($path) . DIRECTORY_SEPARATOR;
-        $tools = realpath(__DIR__ . '/../../../');
+
+        if (!$tools = getenv('PTOOLSPATH')) {
+            $tools = realpath(__DIR__ . '/../../../');
+        }
 
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $path = str_replace("\\", '/', $path);
-            $tools = str_replace("\\", '/', $tools);
+            $path = str_replace("\\", DIRECTORY_SEPARATOR, $path);
+            $tools = str_replace("\\", DIRECTORY_SEPARATOR, $tools);
         }
 
-        if (!is_dir($path . 'public/')) {
-            throw new \Exception('Document root cannot be located');
+        if (!is_dir($path . 'public' . DIRECTORY_SEPARATOR)) {
+            throw new Exception('Document root cannot be located');
         }
 
-        (new Bootstrap())->install($path);
-        (new CodeMirror())->install($path);
-        (new JQuery())->install($path);
+        $bootstrap = new Bootstrap();
+        $bootstrap->install($path);
+
+        $codeMirror = new CodeMirror();
+        $codeMirror->install($path);
+
+        $jQuery = new JQuery();
+        $jQuery->install($path);
 
         copy($tools . '/webtools.php', $path . 'public/webtools.php');
 
@@ -408,9 +427,16 @@ class Tools
             throw new \Exception('Document root cannot be located');
         }
 
-        (new Bootstrap())->uninstall($path);
-        (new CodeMirror())->uninstall($path);
-        (new JQuery())->uninstall($path);
+
+        $bootstrap = new Bootstrap();
+        $bootstrap->uninstall($path);
+
+        $codeMirror = new CodeMirror();
+        $codeMirror->uninstall($path);
+
+        $jQuery = new JQuery();
+        $jQuery->uninstall($path);
+
 
         if (is_file($path . 'public/webtools.config.php')) {
             unlink($path . 'public/webtools.config.php');

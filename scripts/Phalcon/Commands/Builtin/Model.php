@@ -43,6 +43,7 @@ class Model extends Command
     public function getPossibleParams()
     {
         return array(
+            'db=s'            => 'database connection string [optional], default is "database"',
             'name=s'          => 'Table name',
             'schema=s'        => 'Name of the schema [optional]',
             'namespace=s'     => "Model's namespace [optional]",
@@ -89,7 +90,8 @@ class Model extends Command
                 'excludeFields'     => $this->getOption('excludefields'),
                 'force'             => $this->isReceivedOption('force'),
                 'mapColumn'         => $this->isReceivedOption('mapcolumn'),
-                'abstract'          => $this->isReceivedOption('abstract')
+                'abstract'          => $this->isReceivedOption('abstract'),
+                'db'                => $this->getOption('db')
             )
         );
 

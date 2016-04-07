@@ -44,6 +44,7 @@ class AllModels extends Command
     public function getPossibleParams()
     {
         return array(
+            'db=s'        => 'database connection string [optional], default is "database"',
             'config=s'    => 'Configuration file [optional]',
             'models=s'    => 'Models directory [optional]',
             'schema=s'    => 'Name of the schema. [optional]',
@@ -125,7 +126,8 @@ class AllModels extends Command
             'genDocMethods' => $this->isReceivedOption('doc'),
             'modelsDir' => $modelsDir,
             'mapColumn' => $this->isReceivedOption('mapcolumn'),
-            'abstract' => $this->isReceivedOption('abstract')
+            'abstract' => $this->isReceivedOption('abstract'),
+            'db' => $this->getOption('db')
         ));
 
         $modelBuilder->build();

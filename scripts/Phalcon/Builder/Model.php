@@ -159,6 +159,12 @@ class Model extends Component
             ));
         }
 
+        //support custom db
+        $customDb = $this->options->get('db', null);
+        if($customDb != null){
+            $config->database = $config->$customDb;
+        }
+
         if (!isset($config->database)) {
             throw new BuilderException('Database configuration cannot be loaded from your config file.');
         }

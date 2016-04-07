@@ -85,6 +85,12 @@ class AllModels extends Component
         $genSettersGetters = $this->options->get('genSettersGetters', false);
         $mapColumn = $this->options->get('mapColumn', null);
 
+        //support custom db
+        $customDb = $this->options->get('db', null);
+        if($customDb != null){
+            $config->database = $config->$customDb;
+        }
+
         $adapter = $config->database->adapter;
         $this->isSupportedAdapter($adapter);
 
@@ -202,7 +208,8 @@ class AllModels extends Component
                     'directory' => $this->options->get('directory'),
                     'modelsDir' => $this->options->get('modelsDir'),
                     'mapColumn' => $mapColumn,
-                    'abstract' => $this->options->get('abstract')
+                    'abstract' => $this->options->get('abstract'),
+                    'db' => $this->options->get('db'),
                 ));
 
                 $modelBuilder->build();

@@ -26,19 +26,27 @@ namespace Phalcon\Generator;
  */
 class Snippet
 {
+    public function getDatabaseSource($source)
+    {
+        $getSource = '    public $useDb = \'%s\';';
+        return PHP_EOL.sprintf($getSource, $source).PHP_EOL;
+    }
+
     public function getModelSource($source)
     {
-        $getSource = <<<EOD
-    /**
-     * Returns table name mapped in the model.
-     *
-     * @return string
-     */
-    public function getSource()
-    {
-        return '%s';
-    }
-EOD;
+//         $getSource = <<<EOD
+//     /**
+//      * Returns table name mapped in the model.
+//      *
+//      * @return string
+//      */
+//     public function getSource()
+//     {
+//         return '%s';
+//     }
+// EOD;
+//
+    $getSource = '    public $useTable = \'%s\';';
 
         return PHP_EOL.sprintf($getSource, $source).PHP_EOL;
     }

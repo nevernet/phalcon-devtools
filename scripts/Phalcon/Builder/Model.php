@@ -325,83 +325,83 @@ class Model extends Component
         $alreadyColumnMapped = false;
         $alreadyGetSourced   = false;
 
-        if (file_exists($modelPath)) {
-            try {
-                $possibleMethods = array();
-                if ($useSettersGetters) {
-                    foreach ($fields as $field) {
-                        /** @var \Phalcon\Db\Column $field */
-                        $methodName = Utils::camelize($field->getName());
+        // if (file_exists($modelPath)) {
+        //     try {
+        //         $possibleMethods = array();
+        //         if ($useSettersGetters) {
+        //             foreach ($fields as $field) {
+        //                 /** @var \Phalcon\Db\Column $field */
+        //                 $methodName = Utils::camelize($field->getName());
 
-                        $possibleMethods['set' . $methodName] = true;
-                        $possibleMethods['get' . $methodName] = true;
-                    }
-                }
+        //                 $possibleMethods['set' . $methodName] = true;
+        //                 $possibleMethods['get' . $methodName] = true;
+        //             }
+        //         }
 
-                $possibleMethods['getSource'] = true;
+        //         $possibleMethods['getSource'] = true;
 
-                require $modelPath;
+        //         require $modelPath;
 
-                $linesCode = file($modelPath);
-                $fullClassName = $this->options->get('className');
-                if ($this->options->contains('namespace')) {
-                    $fullClassName = $this->options->get('namespace').'\\'.$fullClassName;
-                }
-                $reflection = new ReflectionClass($fullClassName);
-                foreach ($reflection->getMethods() as $method) {
-                    if ($method->getDeclaringClass()->getName() != $fullClassName) {
-                        continue;
-                    }
+        //         $linesCode = file($modelPath);
+        //         $fullClassName = $this->options->get('className');
+        //         if ($this->options->contains('namespace')) {
+        //             $fullClassName = $this->options->get('namespace').'\\'.$fullClassName;
+        //         }
+        //         $reflection = new ReflectionClass($fullClassName);
+        //         foreach ($reflection->getMethods() as $method) {
+        //             if ($method->getDeclaringClass()->getName() != $fullClassName) {
+        //                 continue;
+        //             }
 
-                    $methodName = $method->getName();
-                    if (isset($possibleMethods[$methodName])) {
-                        continue;
-                    }
+        //             $methodName = $method->getName();
+        //             if (isset($possibleMethods[$methodName])) {
+        //                 continue;
+        //             }
 
-                    $indent = PHP_EOL;
-                    if ($method->getDocComment()) {
-                        $firstLine = $linesCode[$method->getStartLine()-1];
-                        preg_match('#^\s+#', $firstLine, $matches);
-                        if (isset($matches[0])) {
-                            $indent .= $matches[0];
-                        }
-                    }
+        //             $indent = PHP_EOL;
+        //             if ($method->getDocComment()) {
+        //                 $firstLine = $linesCode[$method->getStartLine()-1];
+        //                 preg_match('#^\s+#', $firstLine, $matches);
+        //                 if (isset($matches[0])) {
+        //                     $indent .= $matches[0];
+        //                 }
+        //             }
 
-                    $methodDeclaration = join(
-                        '',
-                        array_slice(
-                            $linesCode,
-                            $method->getStartLine() - 1,
-                            $method->getEndLine() - $method->getStartLine() + 1
-                        )
-                    );
+        //             $methodDeclaration = join(
+        //                 '',
+        //                 array_slice(
+        //                     $linesCode,
+        //                     $method->getStartLine() - 1,
+        //                     $method->getEndLine() - $method->getStartLine() + 1
+        //                 )
+        //             );
 
-                    $methodRawCode[$methodName] = $indent . $method->getDocComment() . PHP_EOL . $methodDeclaration;
+        //             $methodRawCode[$methodName] = $indent . $method->getDocComment() . PHP_EOL . $methodDeclaration;
 
-                    switch ($methodName) {
-                        case 'initialize':
-                            $alreadyInitialized = true;
-                            break;
-                        case 'validation':
-                            $alreadyValidations = true;
-                            break;
-                        case 'find':
-                            $alreadyFind = true;
-                            break;
-                        case 'findFirst':
-                            $alreadyFindFirst = true;
-                            break;
-                        case 'columnMap':
-                            $alreadyColumnMapped = true;
-                            break;
-                        case 'getSource':
-                            $alreadyGetSourced = true;
-                            break;
-                    }
-                }
-            } catch (ReflectionException $e) {
-            }
-        }
+        //             switch ($methodName) {
+        //                 case 'initialize':
+        //                     $alreadyInitialized = true;
+        //                     break;
+        //                 case 'validation':
+        //                     $alreadyValidations = true;
+        //                     break;
+        //                 case 'find':
+        //                     $alreadyFind = true;
+        //                     break;
+        //                 case 'findFirst':
+        //                     $alreadyFindFirst = true;
+        //                     break;
+        //                 case 'columnMap':
+        //                     $alreadyColumnMapped = true;
+        //                     break;
+        //                 case 'getSource':
+        //                     $alreadyGetSourced = true;
+        //                     break;
+        //             }
+        //         }
+        //     } catch (ReflectionException $e) {
+        //     }
+        // }
 
         $validations = array();
         foreach ($fields as $field) {
@@ -479,19 +479,25 @@ class Model extends Component
             $license = trim(file_get_contents('license.txt')) . PHP_EOL . PHP_EOL;
         }
 
+        $dbSourceCode = '';
         if (false == $alreadyGetSourced) {
-            $methodRawCode[] = $this->snippet->getModelSource($this->options->get('name'));
+            // $methodRawCode[] = $this->snippet->getModelSource($this->options->get('name'));
+            // echo "$customDb \n\n";
+            $dbSourceCode .= $this->snippet->getDatabaseSource($customDb);
+            $dbSourceCode .= $this->snippet->getModelSource($this->options->get('name'));
         }
 
         if (false == $alreadyFind) {
-            $methodRawCode[] = $this->snippet->getModelFind($className);
+            // $methodRawCode[] = $this->snippet->getModelFind($className);
         }
 
         if (false == $alreadyFindFirst) {
-            $methodRawCode[] = $this->snippet->getModelFindFirst($className);
+            // $methodRawCode[] = $this->snippet->getModelFindFirst($className);
         }
 
-        $content = join('', $attributes);
+
+        $content = $dbSourceCode;
+        $content .= join('', $attributes);
 
         if ($useSettersGetters) {
             $content .= join('', $setters) . join('', $getters);

@@ -487,6 +487,8 @@ class Model extends Component
             $dbSourceCode .= $this->snippet->getModelSource($this->options->get('name'));
         }
 
+        $dbStaticMethodCode = $this->snippet->getStaticModelMethod($className);
+
         if (false == $alreadyFind) {
             // $methodRawCode[] = $this->snippet->getModelFind($className);
         }
@@ -498,6 +500,7 @@ class Model extends Component
 
         $content = $dbSourceCode;
         $content .= join('', $attributes);
+        $content .= $dbStaticMethodCode;
 
         if ($useSettersGetters) {
             $content .= join('', $setters) . join('', $getters);

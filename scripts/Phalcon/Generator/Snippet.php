@@ -26,6 +26,22 @@ namespace Phalcon\Generator;
  */
 class Snippet
 {
+
+    public function getStaticModelMethod($className)
+    {
+      $template = <<<EOD
+    /**
+     * @param string \$class
+     * @return %s
+     */
+    public static function model(\$class = __CLASS__)
+    {
+        return parent::model(\$class);
+    }
+EOD;
+      return PHP_EOL.sprintf($template, $className).PHP_EOL;
+    }
+
     public function getDatabaseSource($source)
     {
         $getSource = '    public $useDb = \'%s\';';

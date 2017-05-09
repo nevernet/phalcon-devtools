@@ -483,7 +483,7 @@ class Model extends Component
         if (false == $alreadyGetSourced) {
             // $methodRawCode[] = $this->snippet->getModelSource($this->options->get('name'));
             // echo "$customDb \n\n";
-            $dbSourceCode .= $this->snippet->getDatabaseSource($$config->database->dbname);
+            $dbSourceCode .= $this->snippet->getDatabaseSource($config->database->dbname);
             $dbSourceCode .= $this->snippet->getModelSource($this->options->get('name'));
         }
 

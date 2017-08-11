@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -21,9 +21,8 @@
 
 namespace Phalcon\Builder;
 
-use Phalcon\Script\Color;
-use Phalcon\Config;
 use Phalcon\Validation;
+use Phalcon\Script\Color;
 use Phalcon\Validation\Validator\Namespaces;
 
 /**
@@ -52,7 +51,7 @@ abstract class Component
      *
      * @param array $options Builder options
      */
-    public function __construct(array $options = array())
+    public function __construct(array $options = [])
     {
         $this->options = new Options($options);
         $this->path = new Path(realpath('.') . DIRECTORY_SEPARATOR);
@@ -62,14 +61,14 @@ abstract class Component
     {
         $validation = new Validation();
 
-        $validation->add('namespace', new Namespaces(array(
+        $validation->add('namespace', new Namespaces([
             'allowEmpty' => true
-        )));
+        ]));
 
-        $messages = $validation->validate(array('namespace' => $namespace));
+        $messages = $validation->validate(['namespace' => $namespace]);
 
         if (count($messages)) {
-            $errors = array();
+            $errors = [];
             foreach ($messages as $message) {
                 $errors[] = $message->getMessage();
             }
@@ -136,7 +135,7 @@ abstract class Component
      *
      * @param string $message
      */
-    protected function _notifySuccess($message)
+    protected function notifySuccess($message)
     {
         print Color::success($message);
     }

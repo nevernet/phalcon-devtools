@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -43,7 +43,7 @@ class AllModels extends Command
      */
     public function getPossibleParams()
     {
-        return array(
+        return [
             'db=s'        => 'database connection string [optional], default is "database"',
             'config=s'    => 'Configuration file [optional]',
             'models=s'    => 'Models directory [optional]',
@@ -51,15 +51,16 @@ class AllModels extends Command
             'namespace=s' => "Model's namespace [optional]",
             'extends=s'   => 'Models extends [optional]',
             'force'       => 'Force script to rewrite all the models [optional]',
+            'camelize'    => 'Properties is in camelCase [optional]',
             'get-set'     => 'Attributes will be protected and have setters/getters [optional]',
             'doc'         => 'Helps to improve code completion on IDEs [optional]',
             'relations'   => 'Possible relations defined according to convention [optional]',
             'fk'          => 'Define any virtual foreign keys [optional]',
-            'validations' => 'Define possible domain validation according to conventions',
             'directory=s' => 'Base path on which project will be created [optional]',
             'mapcolumn'   => 'Get some code for map columns [optional]',
-            'abstract'    => 'Abstract Model [optional]'
-        );
+            'abstract'    => 'Abstract Model [optional]',
+            'help'        => 'Shows this help [optional]',
+        ];
     }
 
     /**
@@ -113,7 +114,7 @@ class AllModels extends Command
             $modelsDir = $this->path->getRootPath($modelsDir);
         }
 
-        $modelBuilder = new AllModelsBuilder(array(
+        $modelBuilder = new AllModelsBuilder([
             'force' => $this->isReceivedOption('force'),
             'config' => $config,
             'schema' => $this->getOption('schema'),
@@ -128,7 +129,8 @@ class AllModels extends Command
             'mapColumn' => $this->isReceivedOption('mapcolumn'),
             'abstract' => $this->isReceivedOption('abstract'),
             'db' => $this->getOption('db')
-        ));
+            'camelize' => $this->isReceivedOption('camelize'),
+        ]);
 
         $modelBuilder->build();
     }
@@ -140,7 +142,7 @@ class AllModels extends Command
      */
     public function getCommands()
     {
-        return array('all-models', 'create-all-models');
+        return ['all-models', 'create-all-models'];
     }
 
     /**

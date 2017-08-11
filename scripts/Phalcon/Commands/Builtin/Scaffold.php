@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -41,7 +41,7 @@ class Scaffold extends Command
      */
     public function getPossibleParams()
     {
-        return array(
+        return [
             'table-name=s'      => 'Table used as base to generate the scaffold',
             'schema=s'          => 'Name of the schema [optional]',
             'get-set'           => 'Attributes will be protected and have setters/getters. [optional]',
@@ -52,7 +52,8 @@ class Scaffold extends Command
             'trace'             => 'Shows the trace of the framework in case of exception [optional]',
             'ns-models=s'       => "Model's namespace [optional]",
             'ns-controllers=s'  => "Controller's namespace [optional]",
-        );
+            'help'              => 'Shows this help [optional]',
+        ];
     }
 
     /**
@@ -63,12 +64,12 @@ class Scaffold extends Command
      */
     public function run(array $parameters)
     {
-        $name = $this->getOption(array('table-name', 1));
-        $templatePath = $this->getOption(array('template-path'), null, TEMPLATE_PATH);
+        $name = $this->getOption(['table-name', 1]);
+        $templatePath = $this->getOption(['template-path'], null, TEMPLATE_PATH);
         $schema = $this->getOption('schema');
-        $templateEngine = $this->getOption(array('template-engine'), null, "php");
+        $templateEngine = $this->getOption(['template-engine'], null, "php");
 
-        $scaffoldBuilder = new ScaffoldBuilder(array(
+        $scaffoldBuilder = new ScaffoldBuilder([
             'name'                 => $name,
             'schema'               => $schema,
             'force'                => $this->isReceivedOption('force'),
@@ -78,7 +79,7 @@ class Scaffold extends Command
             'templateEngine'       => $templateEngine,
             'modelsNamespace'      => $this->getOption('ns-models'),
             'controllersNamespace' => $this->getOption('ns-controllers'),
-        ));
+        ]);
 
         return $scaffoldBuilder->build();
     }
@@ -90,7 +91,7 @@ class Scaffold extends Command
      */
     public function getCommands()
     {
-        return array('scaffold', 'create-scaffold');
+        return ['scaffold', 'create-scaffold'];
     }
 
     /**

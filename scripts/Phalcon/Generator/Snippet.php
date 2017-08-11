@@ -4,20 +4,24 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
   | to license@phalconphp.com so we can send you a copy immediately.       |
   +------------------------------------------------------------------------+
-  | Authors: Serghei Iakovlev <serghei@phalconphp.com>                     |
+  | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
+  |          Eduar Carvajal <eduar@phalconphp.com>                         |
+  |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
 namespace Phalcon\Generator;
+
+use Phalcon\Utils;
 
 /**
  * Snippet Class
@@ -91,11 +95,11 @@ EOD;
         $templateValidateInclusion = <<<EOD
         \$this->validate(
             new InclusionIn(
-                array(
+                [
                     'field'    => '%s',
-                    'domain'   => array(%s),
+                    'domain'   => [%s],
                     'required' => true,
-                )
+                ]
             )
         );
 EOD;
@@ -112,6 +116,8 @@ EOD;
      */
     public function validation()
     {
+        \$validator = new Validation();
+
 %s
     }
 EOD;
@@ -136,7 +142,7 @@ EOD;
         if (!empty($namespace)) {
             $namespace = str_replace('namespace ', '', $namespace);
             $namespace = str_replace(';', '', $namespace);
-            $namespace = str_replace(array("\r", "\n"), '', $namespace);
+            $namespace = str_replace(["\r", "\n"], '', $namespace);
 
             $namespace = PHP_EOL . ' * @package ' . $namespace;
         }
@@ -155,33 +161,50 @@ EOD;
     public function getValidateEmail($fieldName)
     {
         $templateValidateEmail = <<<EOD
-        \$this->validate(
-            new Email(
-                array(
-                    'field'    => '%s',
-                    'required' => true,
-                )
+        \$validator->add(
+            '%s',
+            new EmailValidator(
+                [
+                    'model'   => \$this,
+                    'message' => 'Please enter a correct email address',
+                ]
             )
         );
 EOD;
         return sprintf($templateValidateEmail, $fieldName).PHP_EOL.PHP_EOL;
     }
 
-    public function getValidationFailed()
+    public function getValidationEnd()
     {
         $templateValidationFailed = <<<EOD
-        if (\$this->validationHasFailed() == true) {
-            return false;
-        }
-
-        return true;
+        return \$this->validate(\$validator);
 EOD;
         return $templateValidationFailed;
     }
 
-    public function getAttributes($type, $visibility, $fieldName)
+    public function getAttributes($type, $visibility, \Phalcon\Db\ColumnInterface $field, $annotate = false, $customFieldName = null)
     {
-        $templateAttributes = <<<EOD
+        $fieldName = $customFieldName ?: $field->getName();
+
+        if ($annotate) {
+            $templateAttributes = <<<EOD
+    /**
+     *
+     * @var %s%s%s
+     * @Column(type="%s"%s, nullable=%s)
+     */
+    %s \$%s;
+EOD;
+
+            return PHP_EOL.sprintf($templateAttributes,
+                $type,
+                $field->isPrimary() ? PHP_EOL.'     * @Primary' : '',
+                $field->isAutoIncrement() ? PHP_EOL.'     * @Identity' : '',
+                $type,
+                $field->getSize() ? ', length=' . $field->getSize() : '',
+                $field->isNotNull() ? 'false' : 'true', $visibility, $fieldName).PHP_EOL;
+        } else {
+            $templateAttributes = <<<EOD
     /**
      *
      * @var %s
@@ -189,7 +212,8 @@ EOD;
     %s \$%s;
 EOD;
 
-        return PHP_EOL.sprintf($templateAttributes, $type, $visibility, $fieldName).PHP_EOL;
+            return PHP_EOL.sprintf($templateAttributes, $type, $visibility, $fieldName).PHP_EOL;
+        }
     }
 
     public function getGetterMap($fieldName, $type, $setterName, $typeMap)
@@ -249,7 +273,7 @@ EOD;
      * Allows to query a set of records that match the specified conditions
      *
      * @param mixed \$parameters
-     * @return %s[]
+     * @return %s[]|%s|\Phalcon\Mvc\Model\ResultSetInterface
      */
     public static function find(\$parameters = null)
     {
@@ -266,7 +290,7 @@ EOD;
      * Allows to query the first record that match the specified conditions
      *
      * @param mixed \$parameters
-     * @return %s
+     * @return %s|\Phalcon\Mvc\Model\ResultInterface
      */
     public static function findFirst(\$parameters = null)
     {
@@ -288,7 +312,7 @@ EOD;
             return 'NULL';
         }
 
-        $values = array();
+        $values = [];
         foreach ($options as $name => $val) {
             if (is_bool($val)) {
                 $val = $val ? 'true':'false';
@@ -299,17 +323,17 @@ EOD;
             $values[] = sprintf('\'%s\' => %s', $name, $val);
         }
 
-        $syntax = 'array('. join(',', $values). ')';
+        $syntax = '['. join(',', $values). ']';
 
         return $syntax;
     }
 
     /**
-     * @param \Phalcon\Db\Column[] $fields
-     *
+     * @param \Phalcon\Db\ColumnInterface[] $fields
+     * @param bool                 $camelize
      * @return string
      */
-    public function getColumnMap($fields)
+    public function getColumnMap($fields, $camelize = false)
     {
         $template = <<<EOD
     /**
@@ -320,16 +344,16 @@ EOD;
      */
     public function columnMap()
     {
-        return array(
+        return [
             %s
-        );
+        ];
     }
 EOD;
 
-        $contents = array();
+        $contents = [];
         foreach ($fields as $field) {
             $name = $field->getName();
-            $contents[] = sprintf('\'%s\' => \'%s\'', $name, $name);
+            $contents[] = sprintf('\'%s\' => \'%s\'', $name, $camelize ? Utils::lowerCamelize($name) : $name);
         }
 
         return PHP_EOL.sprintf($template, join(",\n            ", $contents)).PHP_EOL;
@@ -355,7 +379,7 @@ class %s extends Migration
      */
     public function morph()
     {
-        \$this->morphTable('%s', array(
+        \$this->morphTable('%s', [
 %s
 EOD;
         return sprintf($template, $className, $className, $table, $this->getMigrationDefinition('columns', $tableDefinition));
@@ -396,9 +420,9 @@ EOD;
     public function getMigrationBatchInsert($table, $allFields)
     {
         $template = <<<EOD
-        \$this->batchInsert('%s', array(
+        \$this->batchInsert('%s', [
                 %s
-            )
+            ]
         );
 EOD;
         return sprintf($template, $table, join(",\n                ", $allFields));
@@ -415,9 +439,9 @@ EOD;
      */
      public function afterCreateTable()
      {
-        \$this->batchInsert('%s', array(
+        \$this->batchInsert('%s', [
                 %s
-            )
+            ]
         );
      }
 EOD;
@@ -435,9 +459,9 @@ EOD;
     public function getMigrationDefinition($name, $definition)
     {
         $template = <<<EOD
-                '%s' => array(
+                '%s' => [
                     %s
-                ),
+                ],
 
 EOD;
         return sprintf($template, $name, join(",\n                    ", $definition));
@@ -448,9 +472,9 @@ EOD;
         $template = <<<EOD
 new Column(
                         '%s',
-                        array(
+                        [
                             %s
-                        )
+                        ]
                     )
 EOD;
 
@@ -460,7 +484,7 @@ EOD;
     public function getIndexDefinition($indexName, $indexDefinition, $indexType = null)
     {
         $template = <<<EOD
-new Index('%s', array(%s), %s)
+new Index('%s', [%s], %s)
 EOD;
 
         return sprintf($template, $indexName, join(", ", $indexDefinition), $indexType ? "'$indexType'" : 'null');
@@ -471,9 +495,9 @@ EOD;
         $template = <<<EOD
 new Reference(
                         '%s',
-                        array(
+                        [
                             %s
-                        )
+                        ]
                     )
 EOD;
 

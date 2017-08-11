@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -41,14 +41,15 @@ class Controller extends Command
      */
     public function getPossibleParams()
     {
-        return array(
+        return [
             'name=s'        => 'Controller name',
             'namespace=s'   => "Controller's namespace [option]",
             'directory=s'   => 'Base path on which project is located [optional]',
             'output=s'      => 'Directory where the controller should be created [optional]',
             'base-class=s'  => 'Base class to be inherited by the controller [optional]',
             'force'         => 'Force to rewrite controller [optional]',
-        );
+            'help'          => 'Shows this help [optional]',
+        ];
     }
 
     /**
@@ -59,16 +60,16 @@ class Controller extends Command
      */
     public function run(array $parameters)
     {
-        $controllerName = $this->getOption(array('name', 1));
+        $controllerName = $this->getOption(['name', 1]);
 
-        $controllerBuilder = new ControllerBuilder(array(
+        $controllerBuilder = new ControllerBuilder([
             'name' => $controllerName,
             'directory' => $this->getOption('directory'),
             'controllersDir' => $this->getOption('output'),
             'namespace' => $this->getOption('namespace'),
             'baseClass' => $this->getOption('base-class'),
             'force' => $this->isReceivedOption('force')
-        ));
+        ]);
 
         return $controllerBuilder->build();
     }
@@ -80,7 +81,7 @@ class Controller extends Command
      */
     public function getCommands()
     {
-        return array('controller', 'create-controller');
+        return ['controller', 'create-controller'];
     }
 
     /**

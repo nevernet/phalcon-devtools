@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -41,9 +41,10 @@ class Webtools extends Command
      */
     public function getPossibleParams()
     {
-        return array(
-            'action=s' => 'Enables/Disables webtools in a project [enable|disable]'
-        );
+        return [
+            'action=s' => 'Enables/Disables webtools in a project [enable|disable]',
+            'help'     => 'Shows this help [optional]',
+        ];
     }
 
     /**
@@ -55,7 +56,7 @@ class Webtools extends Command
      */
     public function run(array $parameters)
     {
-        $action = $this->getOption(array('action', 1));
+        $action = $this->getOption(['action', 1]);
         $directory = './';
 
         if ($action == 'enable') {
@@ -86,7 +87,7 @@ class Webtools extends Command
      */
     public function getCommands()
     {
-        return array('webtools', 'create-webtools');
+        return ['webtools', 'create-webtools'];
     }
 
     /**

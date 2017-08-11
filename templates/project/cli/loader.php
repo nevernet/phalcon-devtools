@@ -1,9 +1,8 @@
 <?php
 
 $loader = new \Phalcon\Loader();
-$loader->registerDirs(
-    array(
-        __DIR__ . '/../tasks'
-    )
-);
+$loader->registerDirs([
+    APP_PATH . '/tasks',
+    APP_PATH . '/models'
+]);
 $loader->register();

@@ -3,29 +3,48 @@
     "type": "library",
     "description": "This tools provide you useful scripts to generate code helping to develop faster and easy applications that use with Phalcon framework.",
     "keywords": ["framework", "phalcon", "devtools", "webtools", "phar"],
-    "homepage": "http://phalconphp.com",
+    "homepage": "https://phalconphp.com",
     "license": "BSD-3-Clause",
     "authors": [
         {
             "name": "Phalcon Team",
-            "email": "team@phalconphp.com"
+            "email": "team@phalconphp.com",
+            "homepage": "https://phalconphp.com/en/team"
+        },
+        {
+            "name": "Contributors",
+            "homepage": "https://github.com/phalcon/phalcon-devtools/graphs/contributors"
         }
     ],
+    "support": {
+        "issues": "https://github.com/phalcon/phalcon-devtools/issues",
+        "source": "https://github.com/phalcon/phalcon-devtools",
+        "forum": "https://forum.phalconphp.com/"
+    },
     "require": {
-        "php": ">=5.3.9",
-        "ext-phalcon": "~2.0"
+        "php": ">=5.5",
+        "ext-phalcon": "~3.1",
+        "psy/psysh": "@stable"
     },
     "require-dev": {
-        "kherge/box": "^2.5"
+        "kherge/box": "^2.7",
+        "codeception/codeception": "^2.3",
+        "phpdocumentor/reflection-docblock": "^2.0",
+        "phpunit/phpunit": "^4.8",
+        "codeception/specify": "^0.4",
+        "codeception/verify": "^0.3"
+
     },
     "autoload": {
         "psr-4" : {
             "Phalcon\\" : "scripts/Phalcon/"
         }
     },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "2.0.x-dev"
+    "autoload-dev": {
+        "psr-4": {
+            "Phalcon\\Test\\": "tests/unit",
+            "Phalcon\\Test\\Models\\": "tests/_data/models",
+            "Phalcon\\Test\\Module\\": "tests/_support/Module"
         }
     },
     "bin": ["phalcon.php"]

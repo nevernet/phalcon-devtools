@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -40,16 +40,16 @@ class Project extends Command
      */
     public function getPossibleParams()
     {
-        return array(
-            'name'            => 'Name of the new project',
+        return [
+            'name=s'            => 'Name of the new project',
             'enable-webtools' => 'Determines if webtools should be enabled [optional]',
             'directory=s'     => 'Base path on which project will be created [optional]',
             'type=s'          => 'Type of the application to be generated (cli, micro, simple, modules)',
             'template-path=s' => 'Specify a template path [optional]',
             'use-config-ini'  => 'Use a ini file as configuration file [optional]',
             'trace'           => 'Shows the trace of the framework in case of exception [optional]',
-            'help'            => 'Shows this help'
-        );
+            'help'            => 'Shows this help [optional]',
+        ];
     }
 
     /**
@@ -60,21 +60,21 @@ class Project extends Command
      */
     public function run(array $parameters)
     {
-        $projectName = $this->getOption(array('name', 1), null, 'default');
-        $projectType = $this->getOption(array('type', 2), null, 'simple');
-        $projectPath = $this->getOption(array('directory', 3));
-        $templatePath = $this->getOption(array('template-path'), null, TEMPLATE_PATH);
-        $enableWebtools = $this->getOption(array('enable-webtools', 4), null, false);
+        $projectName = $this->getOption(['name', 1], null, 'default');
+        $projectType = $this->getOption(['type', 2], null, 'simple');
+        $projectPath = $this->getOption(['directory', 3]);
+        $templatePath = $this->getOption(['template-path'], null, TEMPLATE_PATH);
+        $enableWebtools = $this->getOption(['enable-webtools', 4], null, false);
         $useConfigIni = $this->getOption('use-config-ini');
 
-        $builder = new ProjectBuilder(array(
+        $builder = new ProjectBuilder([
             'name'           => $projectName,
             'type'           => $projectType,
             'directory'      => $projectPath,
             'enableWebTools' => $enableWebtools,
             'templatePath'   => $templatePath,
             'useConfigIni'   => $useConfigIni
-        ));
+        ]);
 
         return $builder->build();
     }
@@ -86,7 +86,7 @@ class Project extends Command
      */
     public function getCommands()
     {
-        return array('project', 'create-project');
+        return ['project', 'create-project'];
     }
 
     /**

@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -165,7 +165,7 @@ class Scaffold extends Component
         $modelPath = $this->options->get('modelsDir') . $modelName.'.php';
 
         if (!file_exists($modelPath) || $this->options->get('force')) {
-            $modelBuilder = new ModelBuilder(array(
+            $modelBuilder = new ModelBuilder([
                 'name'              => $name,
                 'schema'            => $this->options->get('schema'),
                 'className'         => $this->options->get('className'),
@@ -174,7 +174,7 @@ class Scaffold extends Component
                 'directory'         => $this->options->get('directory'),
                 'force'             => $this->options->get('force'),
                 'namespace'         => $this->options->get('modelsNamespace'),
-            ));
+            ]);
 
             $modelBuilder->build();
         }
@@ -192,8 +192,8 @@ class Scaffold extends Component
         $identityField = $metaData->getIdentityField($entity);
         $primaryKeys = $metaData->getPrimaryKeyAttributes($entity);
 
-        $setParams = array();
-        $selectDefinition = array();
+        $setParams = [];
+        $selectDefinition = [];
 
         $relationField = '';
 
@@ -210,8 +210,8 @@ class Scaffold extends Component
         $this->options->offsetSet('identityField', $identityField);
         $this->options->offsetSet('relationField', $relationField);
         $this->options->offsetSet('selectDefinition', $selectDefinition);
-        $this->options->offsetSet('autocompleteFields', array());
-        $this->options->offsetSet('belongsToDefinitions', array());
+        $this->options->offsetSet('autocompleteFields', []);
+        $this->options->offsetSet('belongsToDefinitions', []);
 
         // Build Controller
         $this->_makeController();
@@ -277,11 +277,11 @@ class Scaffold extends Component
                 }
             }
 
-            $code .= '$'.$var.'->';
+            $code .= '$' . Text::camelize($var, '-') . '->';
             if ($useGetSetters) {
                 $code .= 'set' . Text::camelize($field) . '(' . $fieldCode . ')';
             } else {
-                $code .= $field . ' = ' . $fieldCode;
+                $code .= Text::camelize($field, '-') . ' = ' . $fieldCode;
             }
 
             $code .= ';' . PHP_EOL . "\t\t";
@@ -307,7 +307,7 @@ class Scaffold extends Component
                 $accessor = $field;
             }
 
-            $code .= '$this->tag->setDefault("' . $field . '", $' . $var . '->' . $accessor . ');' . PHP_EOL . "\t\t\t";
+            $code .= '$this->tag->setDefault("' . $field . '", $' . Text::camelize($var, '-') . '->' . $accessor . ');' . PHP_EOL . "\t\t\t";
         }
 
         return $code;
@@ -329,28 +329,28 @@ class Scaffold extends Component
                 "\t" . '<div class="col-sm-10">' . PHP_EOL;
 
         if (isset($relationField[$attribute])) {
-            $code .= "\t\t" . '<?php echo $this->tag->select(array("' . $attribute . '", $' . $selectDefinition[$attribute]['varName'] .
-                ', "using" => "' . $selectDefinition[$attribute]['primaryKey'] . ',' . $selectDefinition[$attribute]['detail'] . '", "useDummy" => true), "class" => "form-control", "id" => "' . $id . '") ?>';
+            $code .= "\t\t" . '<?php echo $this->tag->select(["' . $attribute . '", $' . $selectDefinition[$attribute]['varName'] .
+                ', "using" => "' . $selectDefinition[$attribute]['primaryKey'] . ',' . $selectDefinition[$attribute]['detail'] . '", "useDummy" => true), "class" => "form-control", "id" => "' . $id . '"] ?>';
         } else {
             switch ($dataType) {
                 case 5: // enum
-                    $code .= "\t\t" . '<?php echo $this->tag->selectStatic(array("' . $attribute . '", array(), "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .= "\t\t" . '<?php echo $this->tag->selectStatic(["' . $attribute . '", [], "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
                 case Column::TYPE_CHAR:
-                    $code .=  "\t\t" . '<?php echo $this->tag->textField(array("' . $attribute . '", "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .=  "\t\t" . '<?php echo $this->tag->textField(["' . $attribute . '", "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
                 case Column::TYPE_DECIMAL:
                 case Column::TYPE_INTEGER:
-                    $code .= "\t\t" . '<?php echo $this->tag->textField(array("' . $attribute . '", "type" => "number", "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .= "\t\t" . '<?php echo $this->tag->textField(["' . $attribute . '", "type" => "number", "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
                 case Column::TYPE_DATE:
-                    $code .= "\t\t" . '<?php echo $this->tag->textField(array("' . $attribute . '", "type" => "date", "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .= "\t\t" . '<?php echo $this->tag->textField(["' . $attribute . '", "type" => "date", "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
                 case Column::TYPE_TEXT:
-                    $code .= "\t\t" . '<?php echo $this->tag->textArea(array("' . $attribute . '", "cols" => 30, "rows" => 4, "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .= "\t\t" . '<?php echo $this->tag->textArea(["' . $attribute . '", "cols" => 30, "rows" => 4, "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
                 default:
-                    $code .= "\t\t" . '<?php echo $this->tag->textField(array("' . $attribute . '", "size" => 30, "class" => "form-control", "id" => "' . $id . '")) ?>';
+                    $code .= "\t\t" . '<?php echo $this->tag->textField(["' . $attribute . '", "size" => 30, "class" => "form-control", "id" => "' . $id . '"]) ?>';
                     break;
             }
         }
@@ -491,10 +491,10 @@ class Scaffold extends Component
 
         $code = str_replace('$fullyQualifiedModelName$', $this->options->get('modelClass'), $code);
 
-        $code = str_replace('$singularVar$', '$' . $this->options->get('singular'), $code);
+        $code = str_replace('$singularVar$', '$' . Text::camelize($this->options->get('singular'), '-'), $code);
         $code = str_replace('$singular$', $this->options->get('singular'), $code);
 
-        $code = str_replace('$pluralVar$', '$' . $this->options->get('plural'), $code);
+        $code = str_replace('$pluralVar$', '$' . Text::camelize($this->options->get('plural'), '-'), $code);
         $code = str_replace('$plural$', $this->options->get('plural'), $code);
 
         $code = str_replace('$className$', $this->options->get('className'), $code);
@@ -520,6 +520,12 @@ class Scaffold extends Component
         $attributes = $this->options->get('attributes');
 
         $code = str_replace('$pkVar$', '$' . $attributes[0], $code);
+
+        if ($this->options->get('genSettersGetters')) {
+            $code = str_replace('$pkGet$', 'get' . Text::camelize($attributes[0]) . '()', $code);
+        } else {
+            $code = str_replace('$pkGet$', $attributes[0], $code);
+        }
         $code = str_replace('$pk$', $attributes[0], $code);
 
         if ($this->isConsole()) {
@@ -662,14 +668,14 @@ class Scaffold extends Component
             mkdir($dirPath, 0777, true);
         }
 
-        $viewPath = $dirPath . DIRECTORY_SEPARATOR .$type. '.volt';
+        $viewPath = $dirPath . DIRECTORY_SEPARATOR . $type . '.volt';
         if (file_exists($viewPath)) {
             if (!$this->options->contains('force')) {
                 return;
             }
         }
 
-        $templatePath = $this->options->templatePath . '/scaffold/no-forms/views/' .$type. '.volt';
+        $templatePath = $this->options->templatePath . '/scaffold/no-forms/views/' . $type . '.volt';
         if (!file_exists($templatePath)) {
             throw new BuilderException(sprintf('Template "%s" does not exist.', $templatePath));
         }
@@ -720,7 +726,7 @@ class Scaffold extends Component
             $rowCode .= "\t\t\t" . '<td><?php echo ';
             if (!isset($this->options->allReferences[$fieldName])) {
                 if ($this->options->genSettersGetters) {
-                    $rowCode .= '$' . $this->options->singular . '->get' . Text::camelize($fieldName) . '()';
+                    $rowCode .= '$' . Text::camelize($this->options->singular, '-') . '->get' . Text::camelize($fieldName) . '()';
                 } else {
                     $rowCode .= '$' . $this->options->singular . '->' . $fieldName;
                 }
@@ -741,7 +747,7 @@ class Scaffold extends Component
         $code = str_replace('$plural$', $this->options->plural, $code);
         $code = str_replace('$headerColumns$', $headerCode, $code);
         $code = str_replace('$rowColumns$', $rowCode, $code);
-        $code = str_replace('$singularVar$', '$' . $this->options->singular, $code);
+        $code = str_replace('$singularVar$', '$' . Text::camelize($this->options->singular, '-'), $code);
         $code = str_replace('$pk$', $idField, $code);
 
         if ($this->isConsole()) {
@@ -785,7 +791,7 @@ class Scaffold extends Component
             $rowCode .= "\t\t\t" . '<td>{{ ';
             if (!isset($this->options->allReferences[$fieldName])) {
                 if ($this->options->contains('genSettersGetters')) {
-                    $rowCode .= $this->options->singular . '.get' . Text::camelize($fieldName) . '()';
+                    $rowCode .= Text::camelize($this->options->singular, '-') . '.get' . Text::camelize($fieldName) . '()';
                 } else {
                     $rowCode .= $this->options->singular . '.' . $fieldName;
                 }
@@ -806,7 +812,7 @@ class Scaffold extends Component
         $code = str_replace('$plural$', $this->options->plural, $code);
         $code = str_replace('$headerColumns$', $headerCode, $code);
         $code = str_replace('$rowColumns$', $rowCode, $code);
-        $code = str_replace('$singularVar$', $this->options->singular, $code);
+        $code = str_replace('$singularVar$', Text::camelize($this->options->singular, '-'), $code);
         $code = str_replace('$pk$', $idField, $code);
 
         if ($this->isConsole()) {

@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -33,20 +33,23 @@ use Phalcon\Web\Tools;
  */
 class Simple extends ProjectBuilder
 {
+    use ProjectAware;
+
     /**
      * Project directories
      * @var array
      */
-    protected $projectDirectories = array(
+    protected $projectDirectories = [
         'app',
-        'app/cache',
         'app/views',
         'app/config',
         'app/models',
         'app/controllers',
+        'app/library',
         'app/migrations',
         'app/views/index',
         'app/views/layouts',
+        'cache',
         'public',
         'public/img',
         'public/css',
@@ -54,7 +57,7 @@ class Simple extends ProjectBuilder
         'public/files',
         'public/js',
         '.phalcon'
-    );
+    ];
 
     /**
      * Create indexController file
@@ -63,12 +66,12 @@ class Simple extends ProjectBuilder
      */
     private function createControllerFile()
     {
-        $builder = new ControllerBuilder(array(
+        $builder = new ControllerBuilder([
             'name'           => 'index',
             'directory'      => $this->options->get('projectPath') ,
             'controllersDir' => $this->options->get('projectPath')  . 'app/controllers',
             'baseClass'      => 'ControllerBase'
-        ));
+        ]);
 
         $builder->build();
 
@@ -145,6 +148,10 @@ class Simple extends ProjectBuilder
         $putFile = $this->options->get('projectPath') . 'app/config/services.php';
         $this->generateFile($getFile, $putFile, $this->options->get('name'));
 
+        $getFile = $this->options->get('templatePath') . '/project/simple/router.php';
+        $putFile = $this->options->get('projectPath') . 'app/config/router.php';
+        $this->generateFile($getFile, $putFile, $this->options->get('name'));
+
         return $this;
     }
 
@@ -171,20 +178,6 @@ class Simple extends ProjectBuilder
     {
         $getFile = $this->options->get('templatePath') . '/project/simple/index.php';
         $putFile = $this->options->get('projectPath') . 'public/index.php';
-        $this->generateFile($getFile, $putFile);
-
-        return $this;
-    }
-
-    /**
-     * Create .htrouter.php file
-     *
-     * @return $this
-     */
-    private function createHtrouterFile()
-    {
-        $getFile = $this->options->get('templatePath') . '/project/simple/.htrouter.php';
-        $putFile = $this->options->get('projectPath') . '.htrouter.php';
         $this->generateFile($getFile, $putFile);
 
         return $this;

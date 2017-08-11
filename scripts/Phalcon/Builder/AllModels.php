@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -15,6 +15,7 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
+  |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
 */
 
@@ -32,7 +33,7 @@ use Phalcon\Script\Color;
  */
 class AllModels extends Component
 {
-    public $exist = array();
+    public $exist = [];
 
     /**
      * Create Builder object
@@ -40,7 +41,7 @@ class AllModels extends Component
      * @param array $options Builder options
      * @throws BuilderException
      */
-    public function __construct(array $options = array())
+    public function __construct(array $options = [])
     {
         if (!isset($options['force'])) {
             $options['force'] = false;
@@ -119,44 +120,46 @@ class AllModels extends Component
             $schema = Utils::resolveDbSchema($config->database);
         }
 
-        $hasMany = array();
-        $belongsTo = array();
-        $foreignKeys = array();
+        $hasMany = [];
+        $belongsTo = [];
+        $foreignKeys = [];
+        $referenceList = [];
         if ($defineRelations || $defineForeignKeys) {
             foreach ($db->listTables($schema) as $name) {
                 if ($defineRelations) {
                     if (!isset($hasMany[$name])) {
-                        $hasMany[$name] = array();
+                        $hasMany[$name] = [];
                     }
                     if (!isset($belongsTo[$name])) {
-                        $belongsTo[$name] = array();
+                        $belongsTo[$name] = [];
                     }
                 }
                 if ($defineForeignKeys) {
-                    $foreignKeys[$name] = array();
+                    $foreignKeys[$name] = [];
                 }
 
                 $camelCaseName = Utils::camelize($name);
                 $refSchema = ($adapter != 'Postgresql') ? $schema : $config->database->dbname;
+                $referenceList[$name] = $db->describeReferences($name, $schema);
 
-                foreach ($db->describeReferences($name, $schema) as $reference) {
+                foreach ($referenceList[$name] as $reference) {
                     $columns = $reference->getColumns();
                     $referencedColumns = $reference->getReferencedColumns();
                     $referencedModel = Utils::camelize($reference->getReferencedTable());
                     if ($defineRelations) {
                         if ($reference->getReferencedSchema() == $refSchema) {
                             if (count($columns) == 1) {
-                                $belongsTo[$name][] = array(
+                                $belongsTo[$name][] = [
                                     'referencedModel' => $referencedModel,
                                     'fields' => $columns[0],
                                     'relationFields' => $referencedColumns[0],
-                                    'options' => $defineForeignKeys ? array('foreignKey'=>true) : null
-                                );
-                                $hasMany[$reference->getReferencedTable()][] = array(
+                                    'options' => $defineForeignKeys ? ['foreignKey'=>true] : null
+                                ];
+                                $hasMany[$reference->getReferencedTable()][] = [
                                     'camelizedName' => $camelCaseName,
                                     'fields' => $referencedColumns[0],
                                     'relationFields' => $columns[0]
-                                );
+                                ];
                             }
                         }
                     }
@@ -165,10 +168,11 @@ class AllModels extends Component
         } else {
             foreach ($db->listTables($schema) as $name) {
                 if ($defineRelations) {
-                    $hasMany[$name] = array();
-                    $belongsTo[$name] = array();
-                    $foreignKeys[$name] = array();
+                    $hasMany[$name] = [];
+                    $belongsTo[$name] = [];
+                    $foreignKeys[$name] = [];
                 }
+                $referenceList[$name] = $db->describeReferences($name, $schema);
             }
         }
 
@@ -180,22 +184,22 @@ class AllModels extends Component
                 if (isset($hasMany[$name])) {
                     $hasManyModel = $hasMany[$name];
                 } else {
-                    $hasManyModel = array();
+                    $hasManyModel = [];
                 }
 
                 if (isset($belongsTo[$name])) {
                     $belongsToModel = $belongsTo[$name];
                 } else {
-                    $belongsToModel = array();
+                    $belongsToModel = [];
                 }
 
                 if (isset($foreignKeys[$name])) {
                     $foreignKeysModel = $foreignKeys[$name];
                 } else {
-                    $foreignKeysModel = array();
+                    $foreignKeysModel = [];
                 }
 
-                $modelBuilder = new Model(array(
+                $modelBuilder = new Model([
                     'name' => $name,
                     'schema' => $schema,
                     'extends' => $this->options->get('extends'),
@@ -205,12 +209,15 @@ class AllModels extends Component
                     'belongsTo' => $belongsToModel,
                     'foreignKeys' => $foreignKeysModel,
                     'genSettersGetters' => $genSettersGetters,
+                    'genDocMethods' => $this->options->get('genDocMethods'),
                     'directory' => $this->options->get('directory'),
                     'modelsDir' => $this->options->get('modelsDir'),
                     'mapColumn' => $mapColumn,
                     'abstract' => $this->options->get('abstract'),
                     'db' => $this->options->get('db'),
-                ));
+                    'referenceList' => $referenceList,
+                    'camelize' => $this->options->get('camelize')
+                ]);
 
                 $modelBuilder->build();
             } else {

@@ -4,16 +4,17 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
   | to license@phalconphp.com so we can send you a copy immediately.       |
   +------------------------------------------------------------------------+
-  | Authors: Serghei Iakovlev <serghei@phalconphp.com>                     |
+  | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
+  |          Eduar Carvajal <eduar@phalconphp.com>                         |
   +------------------------------------------------------------------------+
 */
 
@@ -39,7 +40,7 @@ class Module extends Command
      */
     public function getPossibleParams()
     {
-        return array(
+        return [
             'name'            => 'Name of the new module',
             'namespace=s'     => "Module's namespace [optional]",
             'output=s'        => 'Folder where modules are located [optional]',
@@ -47,7 +48,7 @@ class Module extends Command
             'template-path=s' => 'Specify a template path [optional]',
             'help'            => 'Shows this help [optional]',
 
-        );
+        ];
     }
 
     /**
@@ -58,19 +59,19 @@ class Module extends Command
      */
     public function run(array $parameters)
     {
-        $moduleName   = $this->getOption(array('name', 1));
+        $moduleName   = $this->getOption(['name', 1]);
         $namespace    = $this->getOption('namespace', null, 'Application');
         $configType   = $this->getOption('config-type', null, 'php');
         $modulesDir   = $this->getOption('output');
         $templatePath = $this->getOption('template-path', null, TEMPLATE_PATH . DIRECTORY_SEPARATOR . 'module');
 
-        $builder = new ModuleBuilder(array(
+        $builder = new ModuleBuilder([
             'name'         => $moduleName,
             'namespace'    => $namespace,
             'config-type'  => $configType,
             'templatePath' => $templatePath,
             'modulesDir'   => $modulesDir
-        ));
+        ]);
 
         return $builder->build();
     }
@@ -82,7 +83,7 @@ class Module extends Command
      */
     public function getCommands()
     {
-        return array('module', 'create-module');
+        return ['module', 'create-module'];
     }
 
     /**

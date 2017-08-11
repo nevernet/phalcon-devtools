@@ -4,10 +4,10 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
-  | with this package in the file docs/LICENSE.txt.                        |
+  | with this package in the file LICENSE.txt.                             |
   |                                                                        |
   | If you did not receive a copy of the license and are unable to         |
   | obtain it through the world-wide-web, please send an email             |
@@ -34,7 +34,9 @@ use Phalcon\Config;
 /**
  * Command Class
  *
- * @package Phalcon\Commands
+ * @package   Phalcon\Commands
+ * @copyright Copyright (c) 2011-2016 Phalcon Team (team@phalconphp.com)
+ * @license   New BSD License
  */
 abstract class Command implements CommandsInterface
 {
@@ -60,13 +62,13 @@ abstract class Command implements CommandsInterface
      * Parameters received by the script.
      * @var array
      */
-    protected $_parameters = array();
+    protected $_parameters = [];
 
     /**
      * Possible prepared arguments.
      * @var array
      */
-    protected $_preparedArguments = array();
+    protected $_preparedArguments = [];
 
     protected $path;
 
@@ -131,39 +133,19 @@ abstract class Command implements CommandsInterface
      */
     protected function getConfig($path)
     {
-        foreach (array('app/config/', 'config/') as $configPath) {
-            if (file_exists($path . $configPath. "config.ini")) {
-                return new IniConfig($path . $configPath. "/config.ini");
-            } elseif (file_exists($path . $configPath. "/config.php")) {
-                $config = include($path . $configPath. "/config.php");
-                if (is_array($config)) {
-                    $config = new Config($config);
+        foreach (['app/config/', 'config/'] as $configPath) {
+            foreach (['ini', 'php', 'json', 'yaml', 'yml'] as $extension) {
+                if (file_exists($path . $configPath . "/config." . $extension)) {
+                    return $this->loadConfig($path . $configPath . "/config." . $extension);
                 }
-
-                return $config;
-            } elseif (file_exists($path . $configPath. "/config.json")) {
-                return new JsonConfig($path . $configPath. "/config.json");
-            } elseif (file_exists($path . $configPath. "/config.yaml")) {
-                return new YamlConfig($path . $configPath. "/config.yaml");
             }
         }
 
         $directory = new \RecursiveDirectoryIterator('.');
         $iterator = new \RecursiveIteratorIterator($directory);
         foreach ($iterator as $f) {
-            if (preg_match('/config\.php$/i', $f->getPathName())) {
-                $config = include($f->getPathName());
-                if (is_array($config)) {
-                    $config = new Config($config);
-                }
-
-                return $config;
-            } elseif (preg_match('/config\.ini$/i', $f->getPathName())) {
-                return new IniConfig($f->getPathName());
-            } elseif (preg_match('/config\.json$/i', $f->getPathName())) {
-                return new JsonConfig($f->getPathName());
-            } elseif (preg_match('/config\.yaml$/i', $f->getPathName())) {
-                return new YamlConfig($f->getPathName());
+            if (preg_match('/config\.(php|ini|json|yaml|yml)$/i', $f->getPathName())) {
+                return $this->loadConfig($f->getPathName());
             }
         }
 
@@ -183,25 +165,34 @@ abstract class Command implements CommandsInterface
     {
         $pathInfo = pathinfo($fileName);
 
-        if (isset($pathInfo['extension'])) {
-            $extension = strtolower(trim($pathInfo['extension']));
-            if ($extension === 'php') {
+        if (!isset($pathInfo['extension'])) {
+            throw new CommandsException("Config file extension not found.");
+        }
+
+        $extension = strtolower(trim($pathInfo['extension']));
+
+        switch ($extension) {
+            case 'php':
                 $config = include($fileName);
                 if (is_array($config)) {
                     $config = new Config($config);
                 }
 
                 return $config;
-            } elseif ($extension === 'ini') {
-                return new IniConfig($fileName);
-            } elseif ($extension === 'json') {
-                return new JsonConfig($fileName);
-            } elseif ($extension === 'json') {
-                return new YamlConfig($fileName);
-            }
-        }
 
-        throw new CommandsException("Builder can't locate the configuration file.");
+            case 'ini':
+                return new IniConfig($fileName);
+
+            case 'json':
+                return new JsonConfig($fileName);
+
+            case 'yaml':
+            case 'yml':
+                return new YamlConfig($fileName);
+
+            default:
+                throw new CommandsException("Builder can't locate the configuration file.");
+        }
     }
 
     /**
@@ -215,13 +206,13 @@ abstract class Command implements CommandsInterface
      *
      * @todo Refactor
      */
-    public function parseParameters(array $parameters = array(), $possibleAlias = array())
+    public function parseParameters(array $parameters = [], $possibleAlias = [])
     {
         if (count($parameters) == 0) {
             $parameters = $this->getPossibleParams();
         }
 
-        $arguments = array();
+        $arguments = [];
         foreach ($parameters as $parameter => $description) {
             if (strpos($parameter, "=") !== false) {
                 $parameterParts = explode("=", $parameter);
@@ -229,52 +220,33 @@ abstract class Command implements CommandsInterface
                     throw new CommandsException("Invalid definition for the parameter '$parameter'");
                 }
                 if (strlen($parameterParts[0]) == "") {
-                    throw new CommandsException("Invalid definition for the parameter '" . $parameter . "'");
+                    throw new CommandsException("Invalid definition for the parameter '$parameter'");
                 }
-                if (!in_array($parameterParts[1], array('s', 'i', 'l'))) {
-                    throw new CommandsException("Incorrect data type on parameter '" . $parameter . "'");
+                if (!in_array($parameterParts[1], ['s', 'i', 'l'])) {
+                    throw new CommandsException("Incorrect data type on parameter '$parameter'");
                 }
                 $this->_preparedArguments[$parameterParts[0]] = true;
-                $arguments[$parameterParts[0]] = array(
+                $arguments[$parameterParts[0]] = [
                     'have-option' => true,
                     'option-required' => true,
                     'data-type' => $parameterParts[1]
-                );
+                ];
             } else {
-                if (strpos($parameter, "=") !== false) {
-                    $parameterParts = explode("=", $parameter);
-                    if (count($parameterParts) != 2) {
-                        throw new CommandsException("Invalid definition for the parameter '$parameter'");
-                    }
-                    if (strlen($parameterParts[0]) == "") {
-                        throw new CommandsException("Invalid definition for the parameter '$parameter'");
-                    }
-                    if (!in_array($parameterParts[1], array('s', 'i', 'l'))) {
-                        throw new CommandsException("Incorrect data type on parameter '$parameter'");
-                    }
-                    $this->_preparedArguments[$parameterParts[0]] = true;
-                    $arguments[$parameterParts[0]] = array(
-                        'have-option' => true,
-                        'option-required' => false,
-                        'data-type' => $parameterParts[1]
-                    );
-                } else {
-                    if (!preg_match('/([a-zA-Z0-9]+)/', $parameter)) {
-                        throw new CommandsException("Invalid parameter '$parameter'");
-                    }
-
-                    $this->_preparedArguments[$parameter] = true;
-                    $arguments[$parameter] = array(
-                        'have-option'     => false,
-                        'option-required' => false
-                    );
+                if (!preg_match('/([a-zA-Z0-9]+)/', $parameter)) {
+                    throw new CommandsException("Invalid parameter '$parameter'");
                 }
+
+                $this->_preparedArguments[$parameter] = true;
+                $arguments[$parameter] = [
+                    'have-option'     => false,
+                    'option-required' => false
+                ];
             }
         }
 
         $param = '';
         $paramName = '';
-        $receivedParams = array();
+        $receivedParams = [];
         $numberArguments = count($_SERVER['argv']);
 
         for ($i = 1; $i < $numberArguments; $i++) {
@@ -326,6 +298,19 @@ abstract class Command implements CommandsInterface
                     $receivedParams[$i - 1] = $param;
                     $param = '';
                 }
+            }
+        }
+
+        foreach (['ini', 'php', 'json', 'yaml'] as $extension) {
+            $customConfig = "config.{$extension}";
+            if (file_exists($customConfig)) {
+                $config = $this->loadConfig($customConfig);
+                $commandName = $this->getCommands()[0];
+                $optionsToMerge = $config->get($commandName);
+                if (!empty($optionsToMerge)) {
+                    $receivedParams = array_merge($optionsToMerge->toArray(), $receivedParams);
+                }
+                break;
             }
         }
 
@@ -392,8 +377,7 @@ abstract class Command implements CommandsInterface
         $result = [];
 
         foreach ($this->_parameters as $param) {
-            $filter = new Filter();
-            $result[] = $filter->sanitize($param, $filters);
+            $result[] = $this->filter($param, $filters);
         }
 
         return $result;
@@ -414,9 +398,7 @@ abstract class Command implements CommandsInterface
             foreach ($option as $optionItem) {
                 if (isset($this->_parameters[$optionItem])) {
                     if ($filters !== null) {
-                        $filter = new Filter();
-
-                        return $filter->sanitize($this->_parameters[$optionItem], $filters);
+                        return $this->filter($this->_parameters[$optionItem], $filters);
                     }
 
                     return $this->_parameters[$optionItem];
@@ -428,9 +410,7 @@ abstract class Command implements CommandsInterface
 
         if (isset($this->_parameters[$option])) {
             if ($filters !== null) {
-                $filter = new Filter();
-
-                return $filter->sanitize($this->_parameters[$option], $filters);
+                return $this->filter($this->_parameters[$option], $filters);
             }
 
             return $this->_parameters[$option];

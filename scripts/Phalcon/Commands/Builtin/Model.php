@@ -92,8 +92,8 @@ class Model extends Command
                 'force'             => $this->isReceivedOption('force'),
                 'mapColumn'         => $this->isReceivedOption('mapcolumn'),
                 'abstract'          => $this->isReceivedOption('abstract'),
-                'db'                => $this->getOption('db')
-                'annotate'          => $this->isReceivedOption('annotate')
+                'db'                => $this->getOption('db'),
+                'annotate'          => $this->isReceivedOption('annotate'),
             ]
         );
 

@@ -128,7 +128,7 @@ class AllModels extends Command
             'modelsDir' => $modelsDir,
             'mapColumn' => $this->isReceivedOption('mapcolumn'),
             'abstract' => $this->isReceivedOption('abstract'),
-            'db' => $this->getOption('db')
+            'db' => $this->getOption('db'),
             'camelize' => $this->isReceivedOption('camelize'),
         ]);
 

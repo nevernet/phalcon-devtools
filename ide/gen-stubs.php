@@ -12,7 +12,7 @@ if (!extension_loaded('phalcon')) {
 	throw new Exception("phalcon extension isn't installed");
 }
 
-define('CPHALCON_DIR' , '/Users/micate/Code/cphalcon/ext/');
+define('CPHALCON_DIR' , '/Users/qinxin/projects/phalcon/cphalcon/');
 
 if (!file_exists(CPHALCON_DIR)) {
 	throw new Exception("CPHALCON directory does not exist");

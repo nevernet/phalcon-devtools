@@ -439,6 +439,7 @@ class Model extends Component
         $attributes = [];
         $setters = [];
         $getters = [];
+
         foreach ($fields as $field) {
             if (array_key_exists(strtolower($field->getName()), $exclude)) {
                 continue;
@@ -446,7 +447,8 @@ class Model extends Component
             $type = $this->getPHPType($field->getType());
             $fieldName = Utils::lowerCamelizeWithDelimiter($field->getName(), '-', true);
             $fieldName = $this->options->get('camelize') ? Utils::lowerCamelize($fieldName) : $fieldName;
-            $attributes[] = $this->snippet->getAttributes($type, $useSettersGetters ? 'protected' : 'public', $field, $this->options->has( 'annotate' ), $fieldName);
+            $attributes[] = $this->snippet->getAttributes($type, $useSettersGetters ? 'protected' : 'public', $field,
+                $this->options->get('annotate') === true, $fieldName);
 
             if ($useSettersGetters) {
                 $methodName = Utils::camelize($field->getName(). '_-');

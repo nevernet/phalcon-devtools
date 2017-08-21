@@ -146,7 +146,11 @@ class Model extends Component
             $this->path->setRootPath($this->options->get('directory'));
         }
 
-        $config = $this->getConfig();
+        if($this->options->get('config') !== null) {
+            $config = $this->options->get('config');
+        }else{
+            $config = $this->getConfig();
+        }
 
         if (!$modelsDir = $this->options->get('modelsDir')) {
             if (!$config->get('application') || !isset($config->get('application')->modelsDir)) {
@@ -464,7 +468,7 @@ class Model extends Component
 
         $initCode = '';
         if ($alreadyInitialized == false && count($initialize) > 0) {
-            $initCode = $this->snippet->getInitialize($initialize);
+            // $initCode = $this->snippet->getInitialize($initialize);
         }
 
         $license = '';
@@ -481,6 +485,7 @@ class Model extends Component
         }
 
         $dbStaticMethodCode = $this->snippet->getStaticModelMethod($className);
+        $dbStaticMethodCode .= $this->snippet->getRules();
 
         if (false == $alreadyFind) {
             // $methodRawCode[] = $this->snippet->getModelFind($className);

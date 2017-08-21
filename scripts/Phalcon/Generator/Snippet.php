@@ -531,4 +531,21 @@ EOD;
 
         return sprintf($templateRelation, $relation, $column1, $entity, $column2, $alias);
     }
+
+    public function getRules()
+    {
+      $template = <<<EOD
+    /**
+     * rules define
+     * @return array
+     */
+    public function rules()
+    {
+        return array(
+        ['id, name, demo', 'number'],
+        );
+    }
+EOD;
+      return PHP_EOL.$template.PHP_EOL;
+    }
 }

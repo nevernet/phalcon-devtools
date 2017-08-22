@@ -439,6 +439,10 @@ class Model extends Component
         $attributes = [];
         $setters = [];
         $getters = [];
+        $rules = []; //customized rules for validation
+        $rules['integer'] = [];
+        $rules['required'] = [];
+        // $rules['length'] = [];
 
         foreach ($fields as $field) {
             if (array_key_exists(strtolower($field->getName()), $exclude)) {
@@ -460,6 +464,18 @@ class Model extends Component
                     $getters[] = $this->snippet->getGetter($fieldName, $type, $methodName);
                 }
             }
+
+            // added to customized rules
+            if($type == 'integer' && !$field->isPrimary()) {
+                $rules['integer'][] = $fieldName;
+            }
+            if($field->isNotNull() && !$field->isPrimary()) {
+                $rules['required'][] = $fieldName;
+            }
+
+            // if($field->getSize()){
+            //     $rules['length'][] = $fieldName;
+            // }
         }
 
         $validationsCode = '';
@@ -487,7 +503,7 @@ class Model extends Component
         }
 
         $dbStaticMethodCode = $this->snippet->getStaticModelMethod($className);
-        $dbStaticMethodCode .= $this->snippet->getRules();
+        $dbStaticMethodCode .= $this->snippet->getRules($rules);
 
         if (false == $alreadyFind) {
             // $methodRawCode[] = $this->snippet->getModelFind($className);

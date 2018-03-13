@@ -62,9 +62,9 @@ class AllModels extends Component
 
         $this->options->offsetSet('directory', $this->path->getRootPath());
 
-        if($this->options->get('config') !== null) {
+        if (gettype($this->options->get('config')) == 'object') {
             $config = $this->options->get('config');
-        }else{
+        } else {
             $config = $this->getConfig();
         }
 
@@ -114,7 +114,7 @@ class AllModels extends Component
         unset($configArray['adapter']);
 
         /**
-         * @var $db \Phalcon\Db\Adapter\Pdo
+         * @var \Phalcon\Db\Adapter\Pdo $db
          */
         $db = new $adapterName($configArray);
 
@@ -205,7 +205,7 @@ class AllModels extends Component
 
                 $modelBuilder = new Model([
                     'name' => $name,
-                    'config' => $this->options->get('config'),
+                    'config' => $config,
                     'schema' => $schema,
                     'extends' => $this->options->get('extends'),
                     'namespace' => $this->options->get('namespace'),

@@ -29,6 +29,7 @@ use Phalcon\Generator\Snippet;
 use Phalcon\Db\ReferenceInterface;
 use Phalcon\Validation\Validator\Email as EmailValidator;
 use Phalcon\Text;
+use \Phalcon\Db\Adapter\Pdo;
 
 
 /**
@@ -76,11 +77,11 @@ class Model extends Component
         }
 
         if (!isset($options['className'])) {
-            $options['className'] = Text::camelize($options['name'], '_-');
+            $options['className'] = Utils::lowerCamelizeWithDelimiter($options['name'], '_-');
         }
 
         if (!isset($options['fileName'])) {
-            $options['fileName'] = Text::camelize($options['name'], '_-');
+            $options['fileName'] = Utils::lowerCamelizeWithDelimiter($options['name'], '_-');
         }
 
         if (!isset($options['abstract'])) {
@@ -146,9 +147,9 @@ class Model extends Component
             $this->path->setRootPath($this->options->get('directory'));
         }
 
-        if($this->options->get('config') !== null) {
+        if (gettype($this->options->get('config')) == 'object') {
             $config = $this->options->get('config');
-        }else{
+        } else {
             $config = $this->getConfig();
         }
 
@@ -247,15 +248,9 @@ class Model extends Component
         if (!$db->tableExists($table, $schema)) {
             throw new BuilderException(sprintf('Table "%s" does not exist.', $table));
         }
-        $fields = $db->describeColumns($table, $schema);
 
-        if (!$this->options->contains('referenceList')) {
-            foreach ($db->listTables($schema) as $name) {
-                $referenceList[$name] = $db->describeReferences($name, $schema);;
-            }
-        } else {
-            $referenceList = $this->options->get('referenceList');
-        }
+        $fields = $db->describeColumns($table, $schema);
+        $referenceList = $this->getReferenceList($schema, $db);
 
         foreach ($referenceList as $tableName => $references) {
             foreach ($references as $reference) {
@@ -283,7 +278,7 @@ class Model extends Component
         foreach ($db->describeReferences($this->options->get('name'), $schema) as $reference) {
             $entityNamespace = '';
             if ($this->options->contains('namespace')) {
-                $entityNamespace = $this->options->get('namespace')."\\";
+                $entityNamespace = $this->options->get('namespace');
             }
 
             $refColumns = $reference->getReferencedColumns();
@@ -455,7 +450,7 @@ class Model extends Component
                 $this->options->get('annotate') === true, $fieldName);
 
             if ($useSettersGetters) {
-                $methodName = Utils::camelize($field->getName(). '_-');
+                $methodName = Utils::camelize($field->getName(), '_-');
                 $setters[] = $this->snippet->getSetter($fieldName, $type, $methodName);
 
                 if (isset($this->_typeMap[$type])) {
@@ -569,5 +564,26 @@ class Model extends Component
         $fqcn = "{$namespace}\\{$referencedTable}";
 
         return $fqcn;
+    }
+
+    /**
+     * Get reference list from option
+     *
+     * @param string $schema
+     * @param Pdo $db
+     * @return array
+     */
+    protected function getReferenceList($schema, Pdo $db)
+    {
+        if ($this->options->contains('referenceList')) {
+            return $this->options->get('referenceList');
+        }
+
+        $referenceList = [];
+        foreach ($db->listTables($schema) as $name) {
+            $referenceList[$name] = $db->describeReferences($name, $schema);;
+        }
+
+        return $referenceList;
     }
 }

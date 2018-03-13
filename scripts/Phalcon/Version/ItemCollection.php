@@ -64,11 +64,10 @@ class ItemCollection
      * Create new version item
      *
      * @param null|string $version
-     * @param array       $options
      *
-     * @return ItemInterface
+     * @return IncrementalItem|TimestampedItem
      */
-    public static function createItem($version = null, array $options = [])
+    public static function createItem($version = null)
     {
         if (self::TYPE_INCREMENTAL === self::$type) {
             $version = $version ?: '0.0.0';
@@ -77,7 +76,7 @@ class ItemCollection
         } elseif (self::TYPE_TIMESTAMPED === self::$type) {
             $version = $version ?: '0000000_0';
 
-            return new TimestampedItem($version, $options);
+            return new TimestampedItem($version);
         }
 
         throw new \LogicException('Could not create an item of unknown type.');
@@ -86,7 +85,7 @@ class ItemCollection
     /**
      * Check if provided version is correct
      *
-     * @param $version
+     * @param string $version
      *
      * @return bool
      */
@@ -142,7 +141,7 @@ class ItemCollection
      *
      * @param array $versions
      *
-     * @return null|ItemInterface
+     * @return null | ItemInterface | IncrementalItem
      */
     public static function maximum(array $versions)
     {
@@ -161,22 +160,11 @@ class ItemCollection
      * @param ItemInterface   $finalVersion
      * @param ItemInterface[] $versions
      *
-     * @return ItemInterface[]|array
+     * @return ItemInterface[] | array
      */
-    public static function between(
-        ItemInterface $initialVersion,
-        ItemInterface $finalVersion,
-        array $versions
-    ) {
+    public static function between(ItemInterface $initialVersion, ItemInterface $finalVersion, array $versions)
+    {
         $versions = self::sortAsc($versions);
-
-        if (!is_object($initialVersion)) {
-            $initialVersion = self::createItem($initialVersion);
-        }
-
-        if (!is_object($finalVersion)) {
-            $finalVersion = self::createItem($finalVersion);
-        }
 
         $betweenVersions = array();
         if ($initialVersion->getStamp() == $finalVersion->getStamp()) {

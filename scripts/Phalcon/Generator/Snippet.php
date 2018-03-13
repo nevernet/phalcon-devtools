@@ -189,7 +189,7 @@ EOD;
     /**
      *
      * @var %s%s%s
-     * @Column(type="%s"%s, nullable=%s)
+     * @Column(column="%s", type="%s"%s, nullable=%s)
      */
     %s \$%s;
 EOD;
@@ -198,6 +198,7 @@ EOD;
                 $type,
                 $field->isPrimary() ? PHP_EOL.'     * @Primary' : '',
                 $field->isAutoIncrement() ? PHP_EOL.'     * @Identity' : '',
+                $field->getName(),
                 $type,
                 $field->getSize() ? ', length=' . $field->getSize() : '',
                 $field->isNotNull() ? 'false' : 'true', $visibility, $fieldName).PHP_EOL;

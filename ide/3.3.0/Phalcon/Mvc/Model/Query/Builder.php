@@ -428,10 +428,10 @@ namespace Phalcon\Mvc\Model\Query {
 		 * $builder->having("SUM(Robots.price) > 0");
 		 *
 		 * $builder->having(
-		 * 		"SUM(Robots.price) > :sum:",
-		 *   	[
-		 *    		"sum" => 100,
-		 *      ]
+		 *     "SUM(Robots.price) > :sum:",
+		 *     [
+		 *         "sum" => 100,
+		 *     ]
 		 * );
 		 *</code>
 		 *
@@ -450,10 +450,10 @@ namespace Phalcon\Mvc\Model\Query {
 		 * $builder->andHaving("SUM(Robots.price) > 0");
 		 *
 		 * $builder->andHaving(
-		 * 		"SUM(Robots.price) > :sum:",
-		 *   	[
-		 *    		"sum" => 100,
-		 *      ]
+		 *     "SUM(Robots.price) > :sum:",
+		 *     [
+		 *         "sum" => 100,
+		 *     ]
 		 * );
 		 *</code>
 		 *
@@ -472,10 +472,10 @@ namespace Phalcon\Mvc\Model\Query {
 		 * $builder->orHaving("SUM(Robots.price) > 0");
 		 *
 		 * $builder->orHaving(
-		 * 		"SUM(Robots.price) > :sum:",
-		 *   	[
-		 *    		"sum" => 100,
-		 *      ]
+		 *     "SUM(Robots.price) > :sum:",
+		 *     [
+		 *         "sum" => 100,
+		 *     ]
 		 * );
 		 *</code>
 		 *

@@ -5,7 +5,7 @@ namespace Phalcon\Http {
 	/**
 	 * Phalcon\Http\Cookie
 	 *
-	 * Provide OO wrappers to manage a HTTP cookie
+	 * Provide OO wrappers to manage a HTTP cookie.
 	 */
 	
 	class Cookie implements \Phalcon\Http\CookieInterface, \Phalcon\Di\InjectionAwareInterface {
@@ -35,15 +35,7 @@ namespace Phalcon\Http {
 		protected $_httpOnly;
 
 		/**
-		 * \Phalcon\Http\Cookie constructor
-		 *
-		 * @param string name
-		 * @param mixed value
-		 * @param int expire
-		 * @param string path
-		 * @param boolean secure
-		 * @param string domain
-		 * @param boolean httpOnly
+		 * \Phalcon\Http\Cookie constructor.
 		 */
 		public function __construct($name, $value=null, $expire=null, $path=null, $secure=null, $domain=null, $httpOnly=null){ }
 
@@ -70,25 +62,23 @@ namespace Phalcon\Http {
 
 
 		/**
-		 * Returns the cookie's value
-		 *
-		 * @param string|array filters
-		 * @param string defaultValue
-		 * @return mixed
+		 * Returns the cookie's value.
 		 */
 		public function getValue($filters=null, $defaultValue=null){ }
 
 
 		/**
-		 * Sends the cookie to the HTTP client
-		 * Stores the cookie definition in session
+		 * Sends the cookie to the HTTP client.
+		 *
+		 * Stores the cookie definition in session.
 		 */
 		public function send(){ }
 
 
 		/**
-		 * Reads the cookie-related info from the SESSION to restore the cookie as it was set
-		 * This method is automatically called internally so normally you don't need to call it
+		 * Reads the cookie-related info from the SESSION to restore the cookie as it was set.
+		 *
+		 * This method is automatically called internally so normally you don't need to call it.
 		 */
 		public function restore(){ }
 

@@ -21,8 +21,8 @@
 
 namespace Phalcon\Generator;
 
-use Phalcon\Utils;
 use Phalcon\Options\OptionsAware as ModelOption;
+use Phalcon\Utils;
 
 /**
  * Snippet Class
@@ -34,7 +34,7 @@ class Snippet
 
     public function getStaticModelMethod($className)
     {
-      $template = <<<EOD
+        $template = <<<EOD
     /**
      * @param string \$class
      * @return %s
@@ -44,32 +44,34 @@ class Snippet
         return parent::model(\$class);
     }
 EOD;
-      return PHP_EOL.sprintf($template, $className).PHP_EOL;
+
+        return PHP_EOL . sprintf($template, $className) . PHP_EOL;
     }
 
     public function getDatabaseSource($source)
     {
         $getSource = '    public $useDb = \'%s\';';
-        return PHP_EOL.sprintf($getSource, $source).PHP_EOL;
+
+        return PHP_EOL . sprintf($getSource, $source) . PHP_EOL;
     }
 
     public function getModelSource($source)
     {
-//         $getSource = <<<EOD
-//     /**
-//      * Returns table name mapped in the model.
-//      *
-//      * @return string
-//      */
-//     public function getSource()
-//     {
-//         return '%s';
-//     }
-// EOD;
-//
-    $getSource = '    public $useTable = \'%s\';';
+        //         $getSource = <<<EOD
+        //     /**
+        //      * Returns table name mapped in the model.
+        //      *
+        //      * @return string
+        //      */
+        //     public function getSource()
+        //     {
+        //         return '%s';
+        //     }
+        // EOD;
+        //
+        $getSource = '    public $useTable = \'%s\';';
 
-        return PHP_EOL.sprintf($getSource, $source).PHP_EOL;
+        return PHP_EOL . sprintf($getSource, $source) . PHP_EOL;
     }
 
     public function getSetter($originalFieldName, $fieldName, $type, $setterName)
@@ -88,7 +90,17 @@ EOD;
         return \$this;
     }
 EOD;
-        return PHP_EOL.sprintf($templateSetter, $originalFieldName, $type, $fieldName, $setterName, $fieldName, $fieldName, $fieldName).PHP_EOL;
+
+        return PHP_EOL . sprintf(
+            $templateSetter,
+            $originalFieldName,
+            $type,
+            $fieldName,
+            $setterName,
+            $fieldName,
+            $fieldName,
+            $fieldName
+        ) . PHP_EOL;
     }
 
     public function getValidateInclusion($fieldName, $varItems)
@@ -104,7 +116,8 @@ EOD;
             )
         );
 EOD;
-        return PHP_EOL.sprintf($templateValidateInclusion, $fieldName, $varItems).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateValidateInclusion, $fieldName, $varItems) . PHP_EOL;
     }
 
     public function getValidationsMethod(array $pieces)
@@ -122,15 +135,24 @@ EOD;
 %s
     }
 EOD;
-        return PHP_EOL.sprintf($templateValidations, join('', $pieces)).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateValidations, join('', $pieces)) . PHP_EOL;
     }
 
     /**
      * @param ModelOption $modelOptions
      * @return string
      */
-    public function getClass($namespace, $useDefinition, $classDoc = '', $abstract = '', $modelOptions, $extends = '', $content, $license = '')
-    {
+    public function getClass(
+        $namespace,
+        $useDefinition,
+        $classDoc = '',
+        $abstract = '',
+        $modelOptions,
+        $extends = '',
+        $content,
+        $license = ''
+    ) {
         $templateCode = <<<EOD
 <?php
 
@@ -139,6 +161,7 @@ EOD;
 %s
 }
 EOD;
+
         return sprintf(
             $templateCode,
             $license,
@@ -148,8 +171,9 @@ EOD;
             $abstract,
             $modelOptions->getOption('className'),
             $extends,
-            $content)
-        .PHP_EOL;
+            $content
+        )
+            . PHP_EOL;
     }
 
     public function getClassDoc($className, $namespace = '')
@@ -168,7 +192,8 @@ EOD;
  * %s
  */
 EOD;
-        return sprintf($classDoc, $className, $namespace).PHP_EOL;
+
+        return sprintf($classDoc, $className, $namespace) . PHP_EOL;
     }
 
     public function getValidateEmail($fieldName)
@@ -184,7 +209,8 @@ EOD;
             )
         );
 EOD;
-        return sprintf($templateValidateEmail, $fieldName).PHP_EOL.PHP_EOL;
+
+        return sprintf($templateValidateEmail, $fieldName) . PHP_EOL . PHP_EOL;
     }
 
     public function getValidationEnd()
@@ -192,11 +218,17 @@ EOD;
         $templateValidationFailed = <<<EOD
         return \$this->validate(\$validator);
 EOD;
+
         return $templateValidationFailed;
     }
 
-    public function getAttributes($type, $visibility, \Phalcon\Db\ColumnInterface $field, $annotate = false, $customFieldName = null)
-    {
+    public function getAttributes(
+        $type,
+        $visibility,
+        \Phalcon\Db\ColumnInterface $field,
+        $annotate = false,
+        $customFieldName = null
+    ) {
         $fieldName = $customFieldName ?: $field->getName();
 
         if ($annotate) {
@@ -209,14 +241,18 @@ EOD;
     %s \$%s;
 EOD;
 
-            return PHP_EOL.sprintf($templateAttributes,
+            return PHP_EOL . sprintf(
+                $templateAttributes,
                 $type,
-                $field->isPrimary() ? PHP_EOL.'     * @Primary' : '',
-                $field->isAutoIncrement() ? PHP_EOL.'     * @Identity' : '',
+                $field->isPrimary() ? PHP_EOL . '     * @Primary' : '',
+                $field->isAutoIncrement() ? PHP_EOL . '     * @Identity' : '',
                 $field->getName(),
                 $type,
                 $field->getSize() ? ', length=' . $field->getSize() : '',
-                $field->isNotNull() ? 'false' : 'true', $visibility, $fieldName).PHP_EOL;
+                $field->isNotNull() ? 'false' : 'true',
+                $visibility,
+                $fieldName
+            ) . PHP_EOL;
         } else {
             $templateAttributes = <<<EOD
     /**
@@ -226,7 +262,7 @@ EOD;
     %s \$%s;
 EOD;
 
-            return PHP_EOL.sprintf($templateAttributes, $type, $visibility, $fieldName).PHP_EOL;
+            return PHP_EOL . sprintf($templateAttributes, $type, $visibility, $fieldName) . PHP_EOL;
         }
     }
 
@@ -247,7 +283,16 @@ EOD;
         }
     }
 EOD;
-        return PHP_EOL.sprintf($templateGetterMap, $fieldName, $type, $setterName, $fieldName, $typeMap, $fieldName).PHP_EOL;
+
+        return PHP_EOL . sprintf(
+            $templateGetterMap,
+            $fieldName,
+            $type,
+            $setterName,
+            $fieldName,
+            $typeMap,
+            $fieldName
+        ) . PHP_EOL;
     }
 
     public function getGetter($fieldName, $type, $getterName)
@@ -263,7 +308,8 @@ EOD;
         return \$this->%s;
     }
 EOD;
-        return PHP_EOL.sprintf($templateGetter, $fieldName, $type, $getterName, $fieldName).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateGetter, $fieldName, $type, $getterName, $fieldName) . PHP_EOL;
     }
 
     public function getInitialize(array $pieces)
@@ -277,7 +323,8 @@ EOD;
 %s
     }
 EOD;
-        return PHP_EOL.sprintf($templateInitialize, rtrim(join('', $pieces))).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateInitialize, rtrim(join('', $pieces))) . PHP_EOL;
     }
 
     public function getModelFind($className)
@@ -294,7 +341,8 @@ EOD;
         return parent::find(\$parameters);
     }
 EOD;
-        return PHP_EOL.sprintf($templateFind, $className, $className).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateFind, $className, $className) . PHP_EOL;
     }
 
     public function getModelFindFirst($className)
@@ -311,13 +359,14 @@ EOD;
         return parent::findFirst(\$parameters);
     }
 EOD;
-        return PHP_EOL.sprintf($templateFind, $className, $className).PHP_EOL;
+
+        return PHP_EOL . sprintf($templateFind, $className, $className) . PHP_EOL;
     }
 
     /**
      * Builds a PHP syntax with all the options in the array
      *
-     * @param  array  $options
+     * @param  array $options
      * @return string PHP syntax
      */
     public function getRelationOptions(array $options = null)
@@ -329,7 +378,7 @@ EOD;
         $values = [];
         foreach ($options as $name => $val) {
             if (is_bool($val)) {
-                $val = $val ? 'true':'false';
+                $val = $val ? 'true' : 'false';
             } elseif (!is_numeric($val)) {
                 $val = "'{$val}'";
             }
@@ -337,14 +386,14 @@ EOD;
             $values[] = sprintf('\'%s\' => %s', $name, $val);
         }
 
-        $syntax = '['. join(',', $values). ']';
+        $syntax = '[' . join(',', $values) . ']';
 
         return $syntax;
     }
 
     /**
      * @param \Phalcon\Db\ColumnInterface[] $fields
-     * @param bool                 $camelize
+     * @param bool $camelize
      * @return string
      */
     public function getColumnMap($fields, $camelize = false)
@@ -370,7 +419,7 @@ EOD;
             $contents[] = sprintf('\'%s\' => \'%s\'', $name, $camelize ? Utils::lowerCamelize($name) : $name);
         }
 
-        return PHP_EOL.sprintf($template, join(",\n            ", $contents)).PHP_EOL;
+        return PHP_EOL . sprintf($template, join(",\n            ", $contents)) . PHP_EOL;
     }
 
     public function getMigrationMorph($className, $table, $tableDefinition)
@@ -396,7 +445,26 @@ class %s extends Migration
         \$this->morphTable('%s', [
 %s
 EOD;
-        return sprintf($template, $className, $className, $table, $this->getMigrationDefinition('columns', $tableDefinition));
+
+        return sprintf(
+            $template,
+            $className,
+            $className,
+            $table,
+            $this->getMigrationDefinition('columns', $tableDefinition)
+        );
+    }
+
+    public function getMigrationDefinition($name, $definition)
+    {
+        $template = <<<EOD
+                '%s' => [
+                    %s
+                ],
+
+EOD;
+
+        return sprintf($template, $name, join(",\n                    ", $definition));
     }
 
     public function getMigrationUp()
@@ -412,6 +480,7 @@ EOD;
     {
 
 EOD;
+
         return $template;
     }
 
@@ -428,6 +497,7 @@ EOD;
     {
 
 EOD;
+
         return $template;
     }
 
@@ -439,6 +509,7 @@ EOD;
             ]
         );
 EOD;
+
         return sprintf($template, $table, join(",\n                ", $allFields));
     }
 
@@ -459,6 +530,7 @@ EOD;
         );
      }
 EOD;
+
         return sprintf($template, $table, join(",\n                ", $allFields));
     }
 
@@ -467,18 +539,8 @@ EOD;
         $template = <<<EOD
         \$this->batchDelete('%s');
 EOD;
+
         return sprintf($template, $table);
-    }
-
-    public function getMigrationDefinition($name, $definition)
-    {
-        $template = <<<EOD
-                '%s' => [
-                    %s
-                ],
-
-EOD;
-        return sprintf($template, $name, join(",\n                    ", $definition));
     }
 
     public function getColumnDefinition($field, $fieldDefinition)
@@ -546,27 +608,383 @@ EOD;
         return sprintf($templateRelation, $relation, $column1, $entity, $column2, $alias);
     }
 
-    public function getRules($rules=[])
+    public function getRules($rules = [])
     {
-      $tempLine = <<<EOD
-          %s
+        $lengthTempl = <<<EOT
+            ['%s', 'length', ['max'=>%s, 'messageMaximum'=>'字段过长']],
+EOT;
+
+
+        $tempLine = <<<EOD
+            %s
 EOD;
-      $template = <<<EOD
+        $template    = <<<EOD
     /**
      * rules define
      * @return array
      */
     public function rules()
     {
-        return array(
+        return [
 %s
-        );
+        ];
     }
 EOD;
-      $str = '';
-      foreach ($rules as $key => $fields) {
-        $str .= sprintf($tempLine, "['".join(",", $fields)."', '".$key."'],".PHP_EOL);
-      }
-      return PHP_EOL.sprintf($template, $str).PHP_EOL;
+        $str         = '';
+        foreach ($rules as $key => $fields) {
+            if (empty($fields)) {
+                continue;
+            }
+
+            if ($key === 'length') {
+                foreach ($fields as $field => $options) {
+                    $str .= vsprintf($lengthTempl, [$field, $options['max']]).PHP_EOL;
+                }
+                continue;
+            }
+
+            $str .= sprintf($tempLine, "['" . join(",", $fields) . "', '" . $key . "']," . PHP_EOL);
+        }
+
+        return PHP_EOL . sprintf($template, $str) . PHP_EOL;
+    }
+
+    /**
+     * 获取
+     * @param $fieldMaps
+     * @return string
+     */
+    public function getColumnLabels($fieldMaps = [])
+    {
+        $template = <<<EOT
+    /**
+     * @return array
+     */
+    public function columnLabels() : array
+    {
+        return [
+            %s
+        ];
+    }
+EOT;
+
+        $line = <<<EOT
+            '%s'=>'%s',
+EOT;
+
+        $strs = '';
+        foreach ($fieldMaps as $k => $v) {
+            $strs .= vsprintf($line, [$k, $v]).PHP_EOL;
+        }
+
+        return vsprintf($template, [$strs]);
+    }
+
+    /**
+     * @return string
+     */
+    public function getDefaultSkeletonMethod()
+    {
+        $template = <<<EOT
+    /**
+     * [\$p1, \$p2等是固定参数， \$param是剩余的其他参数，一般修改\$p1, \$p2即可，记得更新本注释]
+     * dmeo for add
+     *
+     * @param \$p1
+     * @param \$p2
+     * @param array \$params
+     * @param null \$trans
+     * @return bool
+     * @throws \Exception
+     */
+    public function add(\$p1, \$p2, \$params = [], \$trans = null)
+    {
+        if (\$trans === null) {
+            \$transacation = \$this->getDI()->getSharedTransaction();
+        } else {
+            \$transacation = \$trans;
+        }
+
+        try {
+            // 建议采用直接赋值方式，避免table更新等字段不一致问题
+            \$model     = new self;
+            \$model->p1 = \$p1;
+            \$model->p2 = \$p2;
+            // 赋值其他字段
+
+            if (!\$model->save()) {
+                \$errorMsg = \$this->getMessageAsString(\$model);
+                \$this->logger->error('add operation failed: ' . \$errorMsg);
+                throw new \App\Components\ModelException('新增操作失败');
+            }
+
+            if (\$trans === null) {
+                \$transacation->commit();
+            }
+
+            return true;
+        } catch (\App\Components\ModelException \$e) {
+            \$this->logger->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            \$transacation->rollback();
+
+            return false;
+        }
+    }
+
+    /**
+     * [demo for delete, 主要是参考一下wirteConnection的一些用法. 记得修改本注释]
+     *
+     * @param \$id
+     * @param null \$transacation
+     * @return bool
+     */
+    public function removeByID(\$id, \$transacation = null)
+    {
+        if (\$transacation === null) {
+            \$trans = \$this->getDI()->getSharedTransaction();
+        } else {
+            \$trans = \$transacation;
+        }
+
+        try {
+            \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
+                'conditions' => 'id=?',
+                'bind'       => [\$id],
+            ]);
+
+            if (\$transacation === null) {
+                \$trans->commit();
+            }
+        } catch (\App\Components\ModelException \$exc) {
+            \$this->logger->error('remove operation failed:' . \$exc->getMessage() . PHP_EOL . \$exc->getTraceAsString());
+            \$trans->rollback();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * [demo for getInfo，类似的get方法都可以采用这种模式，记得更新本注释]
+     *
+     * @param \$id
+     * @return array|mixed
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public function getInfoById(\$id)
+    {
+        // self::cached(\KeyDef::\$testKeyDef, [\$id]);
+        \$obj = self::findFirst([
+            'conditions' => 'id=?0',
+            'bind'       => [\$id],
+        ]);
+        if (!\$obj) {
+            return [];
+        }
+
+        return \$obj->toArray();
+    }
+
+    /**
+     * patch Info demo
+     *
+     * @param \$list
+     * @param string \$columnName
+     * @param string \$patchColumn
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public function patchInfo(&\$list, \$columnName = 'xxx_id', \$patchColumn = 'xxx_info')
+    {
+        \$ids = \xLab\Phalcon\Collection\ZArray::collectField(\$list, \$columnName);
+        \$ids = array_filter(\$ids, function (\$id, \$key) {
+            return \$id > 0;
+        }, ARRAY_FILTER_USE_BOTH);
+        \$ids = array_values(\$ids);
+        if (empty(\$ids)) {
+            foreach (\$list as &\$v) {
+                \$v[\$patchColumn] = [];
+            }
+
+            return;
+        }
+
+        \$data = \$this->getInfoByIDs(\$ids);
+        // generate map data
+        // 这里的id根据实际情况替换
+        \$map = \xLab\Phalcon\Collection\ZArray::getMapData(\$data, 'id');
+
+        // patch
+        foreach (\$list as \$k => &\$v) {
+            if (isset(\$map[\$v[\$columnName]])) {
+                \$v[\$patchColumn] = \$map[\$v[\$columnName]];
+            } else {
+                \$v[\$patchColumn] = [];
+            }
+        }
+    }
+
+    /**
+     * @param \$IDs
+     * @return array
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public function getInfoByIDs(\$IDs)
+    {
+        // 这里的cache key一定跟getInfoByID一致，但是cached里面不用传参数
+        // self::cached(\KeyDef::\$testKeyDef);
+        \$data = self::find([
+            'in' => ['id', \$IDs],
+        ])->toArray();
+
+        if (!\$data) {
+            return [];
+        }
+
+        return \$data;
+    }
+
+    /**
+     * [getList demo, 记得更新本注释]
+     *
+     * @param array \$params
+     * @return array
+     */
+    public function getList(\$params = [])
+    {
+        if (empty(\$params['page']) || \$params['page'] < 1) {
+            \$params['page'] = 1;
+        }
+        \$offset   = (\$params['page'] - 1) * self::PAGESIZE;
+        \$pageInfo = [
+            'current_page' => \$params['page'],
+            'total'        => 0,
+            'per_pages'    => self::PAGESIZE,
+        ];
+
+        \$sql      = "SELECT * FROM {\$this->useDb}.{\$this->useTable} a";
+        \$sqlCount = "SELECT count(a.id) as count FROM {\$this->useDb}.{\$this->useTable} a";
+
+        \$conditons = [];
+        \$binds     = [];
+        \$joins     = [];
+        if (!empty(\$params['xxx'])) {
+            \$joins[]     = "  ";
+            \$conditons[] = "";
+            \$binds       = array_merge(\$binds, []);
+        }
+
+        if (!empty(\$params['id'])) {
+            \$conditons[] = " a.id = ? ";
+            \$binds[]     = \$params['id'];
+        }
+        if (!empty(\$params['status'])) {
+            \$conditons[] = " a.status =? ";
+            \$binds[]     = \$params['status'];
+        } else {
+            \$conditons[] = " a.status != ? ";
+            \$binds[]     = self::STATUS_DELETED;
+        }
+
+        if (!empty(\$joins)) {
+            \$sqlCount .= " " . implode(' ', \$joins);
+            \$sql      .= " " . implode(' ', \$joins);
+        }
+        if (!empty(\$conditons)) {
+            \$sqlCount .= " where " . implode(' and ', \$conditons);
+            \$sql      .= " where " . implode(' and ', \$conditons);
+        }
+
+        \$sql   .= " order by a.id desc limit {\$offset}, " . self::PAGESIZE;
+        \$count = \$this->readConnection->fetchOne(\$sqlCount, \Phalcon\Db::FETCH_ASSOC, \$binds);
+
+        \$pageInfo['total'] = \$count['count'];
+
+        \$list = \$this->readConnection->fetchAll(\$sql, \Phalcon\Db::FETCH_ASSOC, \$binds);
+
+        if (!\$list) {
+            return ['list' => [], 'pageinfo' => \$pageInfo];
+        }
+
+        return ['list' => \$list, 'pageinfo' => \$pageInfo];
+    }    
+EOT;
+
+        return $template;
+    }
+
+    /**
+     * @param $namespace
+     * @param $use
+     * @param $className
+     * @param $modelName
+     * @return string
+     */
+    public function getServiceSkeleton($namespace, $use, $className, $modelName) {
+        $template = <<<EOT
+<?php
+namespace %s;
+
+use %s;
+
+class %s
+{
+    /**
+     * @param \$p1
+     * @param \$p2
+     * @param array \$params
+     * @param null \$trans
+     * @return bool
+     * @throws \Exception
+     */
+    public static function add(\$p1, \$p2, \$params = [], \$trans = null)
+    {
+        return %s::model()->add(\$p1, \$p2, \$params, \$trans);
+    }
+
+    /**
+     * @param \$id
+     * @param null \$transacation
+     * @return bool
+     */
+    public static function removeByID(\$id, \$transacation = null): bool
+    {
+        return %s::model()->removeByID(\$id, \$transacation);
+    }
+
+    /**
+     * @param \$id
+     * @return array|mixed
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public static function getInfoById(\$id)
+    {
+        return %s::model()->getInfoById(\$id);
+    }
+
+    /**
+     * @param \$list
+     * @param string \$columnName
+     * @param string \$patchColumn
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public static function patchInfo(&\$list, \$columnName = 'xxx_id', \$patchColumn = 'xxx_info')
+    {
+        %s::model()->patchInfo(\$list, \$columnName, \$patchColumn);
+    }
+
+    /**
+     * @param array \$params
+     * @return array
+     */
+    public static function getList(\$params = [])
+    {
+        return %s::model()->getList(\$params);
+    }
+}
+EOT;
+        return vsprintf($template, [$namespace, $use, $className,
+            $modelName, $modelName, $modelName, $modelName,
+            $modelName, $modelName, $modelName, $modelName]);
     }
 }

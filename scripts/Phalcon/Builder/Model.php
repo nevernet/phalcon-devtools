@@ -21,20 +21,20 @@
 
 namespace Phalcon\Builder;
 
-use Phalcon\Text;
-use Phalcon\Utils;
-use ReflectionClass;
-use Phalcon\Db\Column;
-use Phalcon\Validation;
 use Phalcon\Db\Adapter\Pdo;
-use Phalcon\Generator\Snippet;
+use Phalcon\Db\Column;
 use Phalcon\Db\ReferenceInterface;
+use Phalcon\Exception\InvalidArgumentException;
+use Phalcon\Exception\InvalidParameterException;
 use Phalcon\Exception\RuntimeException;
 use Phalcon\Exception\WriteFileException;
-use Phalcon\Exception\InvalidArgumentException;
+use Phalcon\Generator\Snippet;
 use Phalcon\Options\OptionsAware as ModelOption;
-use Phalcon\Exception\InvalidParameterException;
+use Phalcon\Text;
+use Phalcon\Utils;
+use Phalcon\Validation;
 use Phalcon\Validation\Validator\Email as EmailValidator;
+use ReflectionClass;
 
 /**
  * ModelBuilderComponent
@@ -46,6 +46,11 @@ use Phalcon\Validation\Validator\Email as EmailValidator;
 class Model extends Component
 {
     /**
+     * Options container
+     * @var ModelOption
+     */
+    protected $modelOptions;
+    /**
      * Map of scalar data objects
      * @var array
      */
@@ -53,12 +58,6 @@ class Model extends Component
         //'Date' => 'Date',
         //'Decimal' => 'Decimal'
     ];
-
-    /**
-     * Options container
-     * @var ModelOption
-     */
-    protected $modelOptions;
 
     /**
      * Create Builder object
@@ -101,6 +100,8 @@ class Model extends Component
     public function build()
     {
         $config = $this->modelOptions->getOption('config');
+
+        /* @var $snippet Snippet */
         $snippet = $this->modelOptions->getOption('snippet');
 
         if ($this->modelOptions->hasOption('directory')) {
@@ -112,7 +113,7 @@ class Model extends Component
         $this->setModelPath();
 
         //support custom db
-        $customDb = $this->options->get('db', null);
+        $customDb = $this->modelOptions->getOption('db');
         if ($customDb != null) {
             $config->database = $config->$customDb;
         }
@@ -131,12 +132,19 @@ class Model extends Component
         }
 
         $namespace = '';
+        $serviceNamespace = '';
         if ($this->modelOptions->hasOption('namespace') &&
             $this->checkNamespace($this->modelOptions->getOption('namespace'))) {
             $namespace = 'namespace ' . $this->modelOptions->getOption('namespace') . ';' . PHP_EOL . PHP_EOL;
+
+            // 生成 service namespace
+            $_x = explode('\\', $this->modelOptions->getOption('namespace'));
+            array_pop($_x);
+            $_x[] = 'Services';
+            $serviceNamespace = implode('\\', $_x);
         }
 
-        $genDocMethods = $this->modelOptions->getValidOptionOrDefault('genDocMethods', false);
+        $genDocMethods     = $this->modelOptions->getValidOptionOrDefault('genDocMethods', false);
         $useSettersGetters = $this->modelOptions->getValidOptionOrDefault('genSettersGetters', false);
 
         $adapter = $config->database->adapter;
@@ -194,8 +202,8 @@ class Model extends Component
                     $entityNamespace = $this->modelOptions->getOption('namespace') . "\\";
                 }
 
-                $refColumns = $reference->getReferencedColumns();
-                $columns = $reference->getColumns();
+                $refColumns   = $reference->getReferencedColumns();
+                $columns      = $reference->getColumns();
                 $initialize[] = $snippet->getRelation(
                     'hasMany',
                     $this->modelOptions->getOption('camelize') ? Utils::lowerCamelize($refColumns[0]) : $refColumns[0],
@@ -212,8 +220,8 @@ class Model extends Component
                 $entityNamespace = $this->modelOptions->getOption('namespace');
             }
 
-            $refColumns = $reference->getReferencedColumns();
-            $columns = $reference->getColumns();
+            $refColumns   = $reference->getReferencedColumns();
+            $columns      = $reference->getColumns();
             $initialize[] = $snippet->getRelation(
                 'belongsTo',
                 $this->modelOptions->getOption('camelize') ? Utils::lowerCamelize($columns[0]) : $columns[0],
@@ -223,12 +231,12 @@ class Model extends Component
             );
         }
 
-        $alreadyInitialized = false;
-        $alreadyValidations = false;
-        $alreadyFind = false;
-        $alreadyFindFirst = false;
+        $alreadyInitialized  = false;
+        $alreadyValidations  = false;
+        $alreadyFind         = false;
+        $alreadyFindFirst    = false;
         $alreadyColumnMapped = false;
-        $alreadyGetSourced = false;
+        $alreadyGetSourced   = false;
 
         if (file_exists($modelPath)) {
             try {
@@ -248,7 +256,7 @@ class Model extends Component
                 /** @noinspection PhpIncludeInspection */
                 require_once $modelPath;
 
-                $linesCode = file($modelPath);
+                $linesCode     = file($modelPath);
                 $fullClassName = $this->modelOptions->getOption('className');
                 if ($this->modelOptions->getOption('namespace')) {
                     $fullClassName = $this->modelOptions->getOption('namespace') . '\\' . $fullClassName;
@@ -318,6 +326,7 @@ class Model extends Component
 
         $validations = [];
         foreach ($fields as $field) {
+            /* @var $field \Phalcon\Db\Column */
             if ($field->getType() === Column::TYPE_CHAR) {
                 if ($this->modelOptions->getOption('camelize')) {
                     $fieldName = Utils::lowerCamelize(Utils::camelize($field->getName(), '_-'));
@@ -331,7 +340,7 @@ class Model extends Component
                     }
                 }
                 if (count($domain)) {
-                    $varItems = join(', ', $domain);
+                    $varItems      = join(', ', $domain);
                     $validations[] = $snippet->getValidateInclusion($fieldName, $varItems);
                 }
             }
@@ -342,7 +351,7 @@ class Model extends Component
                     $fieldName = Utils::lowerCamelize(Utils::camelize($field->getName(), '-'));
                 }
                 $validations[] = $snippet->getValidateEmail($fieldName);
-                $uses[] = $snippet->getUseAs(EmailValidator::class, 'EmailValidator');
+                $uses[]        = $snippet->getUseAs(EmailValidator::class, 'EmailValidator');
             }
         }
         if (count($validations)) {
@@ -363,24 +372,22 @@ class Model extends Component
             }
         }
 
-        $attributes = [];
-        $setters = [];
-        $getters = [];
-        $rules = []; //customized rules for validation
-        $rules['integer'] = [];
+        $attributes        = [];
+        $setters           = [];
+        $getters           = [];
+        $rules             = []; //customized rules for validation
+        $rules['integer']  = [];
         $rules['required'] = [];
-        // $rules['length'] = [];
+        $rules['length']   = [];
 
         foreach ($fields as $field) {
+            /* @var $field \Phalcon\Db\Column */
             if (array_key_exists(strtolower($field->getName()), $exclude)) {
                 continue;
             }
-            $type = $this->getPHPType($field->getType());
-            $fieldName = Utils::lowerCamelizeWithDelimiter($field->getName(), '-', true);
-            //  $fieldName =  $this->options->get('camelize') ? Utils::lowerCamelize( $fieldName) :  $fieldName;
-            //  $attributes [] =  $this->snippet->getAttributes( $type,  $useSettersGetters ? 'protected' : 'public',  $field,
-            //      $this->options->get('annotate') === true,  $fieldName);
-            $fieldName = $this->modelOptions->getOption('camelize') ? Utils::lowerCamelize($fieldName) : $fieldName;
+            $type         = $this->getPHPType($field->getType());
+            $fieldName    = Utils::lowerCamelizeWithDelimiter($field->getName(), '-', true);
+            $fieldName    = $this->modelOptions->getOption('camelize') ? Utils::lowerCamelize($fieldName) : $fieldName;
             $attributes[] = $snippet->getAttributes(
                 $type,
                 $useSettersGetters ? 'protected' : 'public',
@@ -391,7 +398,7 @@ class Model extends Component
 
             if ($useSettersGetters) {
                 $methodName = Utils::camelize($field->getName(), '_-');
-                $setters[] = $snippet->getSetter($field->getName(), $fieldName, $type, $methodName);
+                $setters[]  = $snippet->getSetter($field->getName(), $fieldName, $type, $methodName);
 
                 if (isset($this->typeMap[$type])) {
                     $getters[] = $snippet->getGetterMap($fieldName, $type, $methodName, $this->typeMap[$type]);
@@ -401,190 +408,128 @@ class Model extends Component
             }
 
             // added to customized rules
-            if ($type == 'integer' && !$field->isPrimary()) {
+            if ($type == 'integer' && $field->isNotNull() && !$field->isPrimary()) {
                 $rules['integer'][] = $fieldName;
             }
             if ($field->isNotNull() && !$field->isPrimary()) {
                 $rules['required'][] = $fieldName;
             }
 
-            // if( $field->getSize()){
-            //      $rules ['length'][] =  $fieldName;
-            // }
+            if ($field->getSize()>0 && $field->isNotNull() && !$field->isNumeric()) {
+                $rules['length'][$fieldName] = ['max'=>$field->getSize()];
+            }
         }
 
         $validationsCode = '';
         if ($alreadyValidations == false && count($validations) > 0) {
             $validationsCode = $snippet->getValidationsMethod($validations);
-            $uses[] = $snippet->getUse(Validation::class);
+            $uses[]          = $snippet->getUse(Validation::class);
         }
 
         $initCode = '';
         if ($alreadyInitialized == false && count($initialize) > 0) {
-            //    $initCode =    $this->snippet->getInitialize(   $initialize);
-               $initCode =    $snippet->getInitialize(   $initialize);
+            // 不需要phalcon 默认的initialize
+            // $initCode = $snippet->getInitialize($initialize);
         }
 
-           $license = '';
+        $license = '';
         if (file_exists('license.txt')) {
-               $license = trim(file_get_contents('license.txt')) . PHP_EOL . PHP_EOL;
+            $license = trim(file_get_contents('license.txt')) . PHP_EOL . PHP_EOL;
         }
 
-           $dbSourceCode = '';
-        if (false ==    $alreadyGetSourced) {
-            //    $methodRawCode [] =    $this->snippet->getModelSource(   $this->options->get('name'));
-            // $methodRawCode [] =    $snippet->getModelSource(   $this->modelOptions->getOption('name'));
+        $dbSourceCode = '';
+        if (false == $alreadyGetSourced) {
+            // $methodRawCode [] =    $snippet->getModelSource($this->modelOptions->getOption('name'));
             // echo "   $customDb \n\n";
-               $dbSourceCode .=    $this->snippet->getDatabaseSource(   $config->database->dbname);
-               $dbSourceCode .=    $this->snippet->getModelSource(   $this->options->get('name'));
-
+            $dbSourceCode .= $snippet->getDatabaseSource($config->database->dbname);
+            $dbSourceCode .= $snippet->getModelSource($this->modelOptions->getOption('name'));
         }
 
-           $dbStaticMethodCode =    $this->snippet->getStaticModelMethod(   $className);
-           $dbStaticMethodCode .=    $this->snippet->getRules(   $rules);
+        $className          = $this->modelOptions->getOption('className');
+        $serviceClassName   = $className.'Service';
+        $dbStaticMethodCode = $snippet->getStaticModelMethod($className);
+        $dbStaticMethodCode .= $snippet->getRules($rules);
+        $dbStaticMethodCode .= $snippet->getDefaultSkeletonMethod();
 
-        if (false ==    $alreadyFind) {
-            //    $methodRawCode [] =    $this->snippet->getModelFind(   $className);
+        if (false == $alreadyFind) {
             // $methodRawCode [] =    $snippet->getModelFind(   $this->modelOptions->getOption('className'));
         }
 
-        if (false ==    $alreadyFindFirst) {
-            //    $methodRawCode [] =    $this->snippet->getModelFindFirst(   $className);
+        if (false == $alreadyFindFirst) {
             // $methodRawCode [] =    $snippet->getModelFindFirst(   $this->modelOptions->getOption('className'));
-
         }
 
-           $content =    $dbSourceCode;
-           $content .= join('',    $attributes);
-           $content .=    $dbStaticMethodCode;
+        $content = $dbSourceCode;
+        $content .= join('', $attributes);
+        $content .= $dbStaticMethodCode;
 
-        if (   $useSettersGetters) {
-               $content .= join('',    $setters) . join('',    $getters);
+        if ($useSettersGetters) {
+            $content .= join('', $setters) . join('', $getters);
         }
 
-           $content .=    $validationsCode .    $initCode;
-        foreach (   $methodRawCode as    $methodCode) {
-               $content .=    $methodCode;
+        $content .= $validationsCode . $initCode;
+        foreach ($methodRawCode as $methodCode) {
+            $content .= $methodCode;
         }
 
-           $classDoc = '';
-        if (   $genDocMethods) {
-               $classDoc =    $snippet->getClassDoc(   $this->modelOptions->getOption('className'),    $namespace);
+        $classDoc = '';
+        if ($genDocMethods) {
+            $classDoc = $snippet->getClassDoc($this->modelOptions->getOption('className'), $namespace);
         }
 
-        if (   $this->modelOptions->hasOption('mapColumn') &&    $this->modelOptions->getOption('mapColumn')
-                && false ==    $alreadyColumnMapped) {
-               $content .=    $snippet->getColumnMap(   $fields,    $this->modelOptions->getOption('camelize'));
+        if ($this->modelOptions->hasOption('mapColumn') && $this->modelOptions->getOption('mapColumn')
+            && false == $alreadyColumnMapped) {
+            $content .= $snippet->getColumnMap($fields, $this->modelOptions->getOption('camelize'));
         }
 
-           $useDefinition = '';
-        if (!empty(   $uses)) {
-            usort(   $uses, function (   $a,    $b) {
-                return strlen(   $a) - strlen(   $b);
+        $useDefinition = '';
+        if (!empty($uses)) {
+            usort($uses, function ($a, $b) {
+                return strlen($a) - strlen($b);
             });
 
-               $useDefinition = join("\n",    $uses) . PHP_EOL . PHP_EOL;
+            $useDefinition = join("\n", $uses) . PHP_EOL . PHP_EOL;
         }
 
-           $abstract = (   $this->modelOptions->getOption('abstract') ? 'abstract ' : '');
+        $abstract = ($this->modelOptions->getOption('abstract') ? 'abstract ' : '');
 
-           $code =    $snippet->getClass(
-               $namespace,
-               $useDefinition,
-               $classDoc,
-               $abstract,
-               $this->modelOptions,
-               $extends,
-               $content,
-               $license
+        $code = $snippet->getClass(
+            $namespace,
+            $useDefinition,
+            $classDoc,
+            $abstract,
+            $this->modelOptions,
+            $extends,
+            $content,
+            $license
         );
 
-        if (file_exists(   $modelPath) && !is_writable(   $modelPath)) {
-            throw new WriteFileException(sprintf('Unable to write to %s. Check write-access of a file.',    $modelPath));
+        if (file_exists($modelPath)) {
+            throw new WriteFileException(sprintf('file exist', $modelPath));
         }
 
-        if (!file_put_contents(   $modelPath,    $code)) {
-            throw new WriteFileException(sprintf('Unable to write to %s',    $modelPath));
+        if (file_exists($modelPath) && !is_writable($modelPath)) {
+            throw new WriteFileException(sprintf('Unable to write to %s. Check write-access of a file.', $modelPath));
         }
 
-        if (   $this->isConsole()) {
-               $msgSuccess = (   $this->modelOptions->getOption('abstract') ? 'Abstract ' : '');
-               $msgSuccess .= 'Model "%s" was successfully created.';
-               $this->notifySuccess(sprintf(   $msgSuccess, Text::camelize(   $this->modelOptions->getOption('name'), '_-')));
-        }
-    }
-
-    /**
-     * Set path to model
-     *
-     * @throw WriteFileException
-     */
-    protected function setModelPath()
-    {
-           $modelPath =    $this->modelOptions->getOption('modelsDir');
-
-        if (false ==    $this->isAbsolutePath(   $modelPath)) {
-               $modelPath =    $this->path->getRootPath(   $modelPath);
+        if (!file_put_contents($modelPath, $code)) {
+            throw new WriteFileException(sprintf('Unable to write to %s', $modelPath));
         }
 
-           $modelPath .=    $this->modelOptions->getOption('className') . '.php';
+        // 写入service
+        $serviceUseCode = $this->modelOptions->getOption('namespace').'\\'.$className;
+        $serviceCode = $snippet->getServiceSkeleton($serviceNamespace, $serviceUseCode, $serviceClassName, $className);
 
-        if (file_exists(   $modelPath) && !   $this->modelOptions->getOption('force')) {
-            throw new WriteFileException(sprintf(
-                'The model file "%s.php" already exists in models dir',
-                   $this->modelOptions->getOption('className')
-            ));
+        $servicePath = dirname(dirname($modelPath)).DIRECTORY_SEPARATOR.'Services'.DIRECTORY_SEPARATOR.$serviceClassName.'.php';
+        if (!file_put_contents($servicePath, $serviceCode)) {
+            throw new WriteFileException(sprintf('Unable to write to %s', $servicePath));
         }
 
-           $this->modelOptions->setOption('modelPath',    $modelPath);
-    }
-
-    /**
-     * @throw InvalidParameterException
-     */
-    protected function checkDataBaseParam()
-    {
-        if (!isset(   $this->modelOptions->getOption('config')->database)) {
-            throw new InvalidParameterException('Database configuration cannot be loaded from your config file.');
+        if ($this->isConsole()) {
+            $msgSuccess = ($this->modelOptions->getOption('abstract') ? 'Abstract ' : '');
+            $msgSuccess .= 'Model "%s" was successfully created.';
+            $this->notifySuccess(sprintf($msgSuccess, Text::camelize($this->modelOptions->getOption('name'), '_-')));
         }
-
-        if (!isset(   $this->modelOptions->getOption('config')->database->adapter)) {
-            throw new InvalidParameterException(
-                "Adapter was not found in the config. " .
-                "Please specify a config variable [database][adapter]"
-            );
-        }
-    }
-
-    protected function getEntityClassName(ReferenceInterface    $reference,    $namespace)
-    {
-           $referencedTable = Utils::camelize(   $reference->getReferencedTable());
-           $fqcn = "{$namespace
-            }\\{$referencedTable
-            }";
-
-        return    $fqcn;
-    }
-
-    /**
-     * Get reference list from option
-     *
-     * @param string    $schema
-     * @param Pdo    $db
-     * @return array
-     */
-    protected function getReferenceList(   $schema, Pdo    $db)
-    {
-        if (   $this->modelOptions->hasOption('referenceList')) {
-            return    $this->modelOptions->getOption('referenceList');
-        }
-
-           $referenceList = [];
-        foreach (   $db->listTables(   $schema) as    $name) {
-               $referenceList [  $name] =    $db->describeReferences(   $name,    $schema);
-        }
-
-        return    $referenceList;
     }
 
     /**
@@ -594,16 +539,18 @@ class Model extends Component
      */
     protected function setModelsDir()
     {
-        if (   $this->modelOptions->hasOption('modelsDir')) {
-               $this->modelOptions->setOption(
+        if ($this->modelOptions->hasOption('modelsDir')) {
+            $this->modelOptions->setOption(
                 'modelsDir',
-                rtrim(   $this->modelOptions->getOption('modelsDir'), '/\\') . DIRECTORY_SEPARATOR
+                rtrim($this->modelOptions->getOption('modelsDir'), '/\\') . DIRECTORY_SEPARATOR
             );
+
             return;
         }
 
-        if (   $modelsDir =    $this->modelOptions->getOption('config')->path('application.modelsDir')) {
-               $this->modelOptions->setOption('modelsDir', rtrim(   $modelsDir, '/\\') . DIRECTORY_SEPARATOR);
+        if ($modelsDir = $this->modelOptions->getOption('config')->path('application.modelsDir')) {
+            $this->modelOptions->setOption('modelsDir', rtrim($modelsDir, '/\\') . DIRECTORY_SEPARATOR);
+
             return;
         }
 
@@ -611,14 +558,87 @@ class Model extends Component
     }
 
     /**
+     * Set path to model
+     *
+     * @throw WriteFileException
+     */
+    protected function setModelPath()
+    {
+        $modelPath = $this->modelOptions->getOption('modelsDir');
+
+        if (false == $this->isAbsolutePath($modelPath)) {
+            $modelPath = $this->path->getRootPath($modelPath);
+        }
+
+        $modelPath .= $this->modelOptions->getOption('className') . '.php';
+
+        if (file_exists($modelPath) && !$this->modelOptions->getOption('force')) {
+            throw new WriteFileException(sprintf(
+                'The model file "%s.php" already exists in models dir',
+                $this->modelOptions->getOption('className')
+            ));
+        }
+
+        $this->modelOptions->setOption('modelPath', $modelPath);
+    }
+
+    /**
+     * @throw InvalidParameterException
+     */
+    protected function checkDataBaseParam()
+    {
+        if (!isset($this->modelOptions->getOption('config')->database)) {
+            throw new InvalidParameterException('Database configuration cannot be loaded from your config file.');
+        }
+
+        if (!isset($this->modelOptions->getOption('config')->database->adapter)) {
+            throw new InvalidParameterException(
+                "Adapter was not found in the config. " .
+                "Please specify a config variable [database][adapter]"
+            );
+        }
+    }
+
+    /**
+     * Get reference list from option
+     *
+     * @param string $schema
+     * @param Pdo $db
+     * @return array
+     */
+    protected function getReferenceList($schema, Pdo $db)
+    {
+        if ($this->modelOptions->hasOption('referenceList')) {
+            return $this->modelOptions->getOption('referenceList');
+        }
+
+        $referenceList = [];
+        foreach ($db->listTables($schema) as $name) {
+            $referenceList [$name] = $db->describeReferences($name, $schema);
+        }
+
+        return $referenceList;
+    }
+
+    protected function getEntityClassName(ReferenceInterface $reference, $namespace)
+    {
+        $referencedTable = Utils::camelize($reference->getReferencedTable());
+        $fqcn            = "{$namespace
+            }\\{$referencedTable
+            }";
+
+        return $fqcn;
+    }
+
+    /**
      * Returns the associated PHP type
      *
-     * @param  string    $type
+     * @param  string $type
      * @return string
      */
-    protected function getPHPType(   $type)
+    protected function getPHPType($type)
     {
-        switch (   $type) {
+        switch ($type) {
             case Column::TYPE_INTEGER:
             case Column::TYPE_BIGINTEGER:
                 return 'integer';

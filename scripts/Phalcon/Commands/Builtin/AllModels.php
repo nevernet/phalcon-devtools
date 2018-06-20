@@ -4,7 +4,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Developer Tools                                                |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2016 Phalcon Team (https://www.phalconphp.com)      |
+  | Copyright (c) 2011-present Phalcon Team (https://www.phalconphp.com)   |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file LICENSE.txt.                             |
@@ -59,6 +59,7 @@ class AllModels extends Command
             'output=s'    => 'Folder where models are located [optional]',
             'mapcolumn'   => 'Get some code for map columns [optional]',
             'abstract'    => 'Abstract Model [optional]',
+            'annotate'    => 'Annotate Attributes [optional]',
             'help'        => 'Shows this help [optional]',
         ];
     }
@@ -96,7 +97,6 @@ class AllModels extends Command
                     $config = new Config($config);
                 }
             }
-
         } else {
             $config = $this->path->getConfig();
         }
@@ -130,6 +130,7 @@ class AllModels extends Command
             'abstract' => $this->isReceivedOption('abstract'),
             'db' => $this->getOption('db'),
             'camelize' => $this->isReceivedOption('camelize'),
+            'annotate' => $this->isReceivedOption('annotate'),
         ]);
 
         $modelBuilder->build();

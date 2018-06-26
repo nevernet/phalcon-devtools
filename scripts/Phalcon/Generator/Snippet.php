@@ -699,35 +699,20 @@ EOT;
      */
     public function add(\$p1, \$p2, \$params = [], \$trans = null)
     {
-        if (\$trans === null) {
-            \$transacation = \$this->getDI()->getSharedTransaction();
-        } else {
-            \$transacation = \$trans;
+        // 建议采用直接赋值方式，避免table更新等字段不一致问题
+        \$model     = new self;
+        \$model->p1 = \$p1;
+        \$model->p2 = \$p2;
+        // 赋值其他字段
+
+        if (\$trans !== null) {
+            \$model->setTransaction(\$trans);
         }
 
-        try {
-            // 建议采用直接赋值方式，避免table更新等字段不一致问题
-            \$model     = new self;
-            \$model->p1 = \$p1;
-            \$model->p2 = \$p2;
-            // 赋值其他字段
-
-            if (!\$model->save()) {
-                \$errorMsg = \$this->getMessageAsString(\$model);
-                \$this->logger->error('add operation failed: ' . \$errorMsg);
-                throw new \App\Components\ModelException('新增操作失败');
-            }
-
-            if (\$trans === null) {
-                \$transacation->commit();
-            }
-
-            return true;
-        } catch (\App\Components\ModelException \$e) {
-            \$this->logger->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            \$transacation->rollback();
-
-            return false;
+        if (!\$model->save()) {
+            \$errorMsg = \$this->getMessageAsString(\$model);
+            \$this->logger->error('add operation failed: ' . \$errorMsg);
+            throw new \App\Components\ModelException('新增操作失败');
         }
     }
 
@@ -740,29 +725,12 @@ EOT;
      */
     public function removeByID(\$id, \$transacation = null)
     {
-        if (\$transacation === null) {
-            \$trans = \$this->getDI()->getSharedTransaction();
-        } else {
-            \$trans = \$transacation;
-        }
+        \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
+            'conditions' => 'id=?',
+            'bind'       => [\$id],
+        ]);
 
-        try {
-            \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
-                'conditions' => 'id=?',
-                'bind'       => [\$id],
-            ]);
-
-            if (\$transacation === null) {
-                \$trans->commit();
-            }
-        } catch (\App\Components\ModelException \$exc) {
-            \$this->logger->error('remove operation failed:' . \$exc->getMessage() . PHP_EOL . \$exc->getTraceAsString());
-            \$trans->rollback();
-
-            return false;
-        }
-
-        return true;
+        return \$result;
     }
 
     /**
@@ -927,7 +895,7 @@ namespace %s;
 
 use %s;
 
-class %s
+class %s extends \App\Components\ModuleServiceBase
 {
     /**
      * @param \$p1
@@ -939,7 +907,27 @@ class %s
      */
     public static function add(\$p1, \$p2, \$params = [], \$trans = null)
     {
-        return %s::model()->add(\$p1, \$p2, \$params, \$trans);
+        if (\$trans === null) {
+            \$transacation = self::getDI()->getSharedTransaction();
+        } else {
+            \$transacation = \$trans;
+        }
+
+        try {
+            \$result = %s::model()->add(\$p1, \$p2, \$params, \$trans);
+            
+            if (\$trans === null) {
+                \$transacation->commit();
+            }
+            return true;
+        } catch (\App\Components\ModuleServiceException \$e) {
+            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            if (\$trans === null) {
+                \$transacation->rollback();
+            }
+
+            return false;
+        }
     }
 
     /**
@@ -947,9 +935,30 @@ class %s
      * @param null \$transacation
      * @return bool
      */
-    public static function removeByID(\$id, \$transacation = null): bool
+    public static function removeByID(\$id, \$trans = null): bool
     {
-        return %s::model()->removeByID(\$id, \$transacation);
+        if (\$trans === null) {
+            \$transacation = self::getDI()->getSharedTransaction();
+        } else {
+            \$transacation = \$trans;
+        }
+
+        try {
+            \$result = %s::model()->removeByID(\$id, \$transacation);
+            
+            
+            if (\$trans === null) {
+                \$transacation->commit();
+            }
+            return true;
+        } catch (\App\Components\ModuleServiceException \$e) {
+            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            if (\$trans === null) {
+                \$transacation->rollback();
+            }
+
+            return false;
+        }
     }
 
     /**

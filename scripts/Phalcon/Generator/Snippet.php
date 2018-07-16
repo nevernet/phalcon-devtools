@@ -720,10 +720,10 @@ EOT;
      * [demo for delete, 主要是参考一下wirteConnection的一些用法. 记得修改本注释]
      *
      * @param \$id
-     * @param null \$transacation
+     * @param null \$transaction
      * @return bool
      */
-    public function removeByID(\$id, \$transacation = null)
+    public function removeByID(\$id, \$transaction = null)
     {
         \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
             'conditions' => 'id=?',
@@ -833,24 +833,24 @@ EOT;
         \$sql      = "SELECT * FROM {\$this->useDb}.{\$this->useTable} a";
         \$sqlCount = "SELECT count(a.id) as count FROM {\$this->useDb}.{\$this->useTable} a";
 
-        \$conditons = [];
+        \$conditions = [];
         \$binds     = [];
         \$joins     = [];
         if (!empty(\$params['xxx'])) {
             \$joins[]     = "  ";
-            \$conditons[] = "";
+            \$conditions[] = "";
             \$binds       = array_merge(\$binds, []);
         }
 
         if (!empty(\$params['id'])) {
-            \$conditons[] = " a.id = ? ";
+            \$conditions[] = " a.id = ? ";
             \$binds[]     = \$params['id'];
         }
         if (!empty(\$params['status'])) {
-            \$conditons[] = " a.status =? ";
+            \$conditions[] = " a.status =? ";
             \$binds[]     = \$params['status'];
         } else {
-            \$conditons[] = " a.status != ? ";
+            \$conditions[] = " a.status != ? ";
             \$binds[]     = self::STATUS_DELETED;
         }
 
@@ -858,9 +858,9 @@ EOT;
             \$sqlCount .= " " . implode(' ', \$joins);
             \$sql      .= " " . implode(' ', \$joins);
         }
-        if (!empty(\$conditons)) {
-            \$sqlCount .= " where " . implode(' and ', \$conditons);
-            \$sql      .= " where " . implode(' and ', \$conditons);
+        if (!empty(\$conditions)) {
+            \$sqlCount .= " where " . implode(' and ', \$conditions);
+            \$sql      .= " where " . implode(' and ', \$conditions);
         }
 
         \$sql   .= " order by a.id desc limit {\$offset}, " . self::PAGESIZE;
@@ -875,7 +875,7 @@ EOT;
         }
 
         return ['list' => \$list, 'pageinfo' => \$pageInfo];
-    }    
+    }
 EOT;
 
         return $template;
@@ -908,22 +908,22 @@ class %s extends \App\Components\ModuleServiceBase
     public static function add(\$p1, \$p2, \$params = [], \$trans = null)
     {
         if (\$trans === null) {
-            \$transacation = self::getDI()->getSharedTransaction();
+            \$transaction = self::getDI()->getSharedTransaction();
         } else {
-            \$transacation = \$trans;
+            \$transaction = \$trans;
         }
 
         try {
             \$result = %s::model()->add(\$p1, \$p2, \$params, \$trans);
-            
+
             if (\$trans === null) {
-                \$transacation->commit();
+                \$transaction->commit();
             }
             return true;
         } catch (\App\Components\ModuleServiceException \$e) {
             self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
             if (\$trans === null) {
-                \$transacation->rollback();
+                \$transaction->rollback();
             }
 
             return false;
@@ -932,29 +932,29 @@ class %s extends \App\Components\ModuleServiceBase
 
     /**
      * @param \$id
-     * @param null \$transacation
+     * @param null \$transaction
      * @return bool
      */
     public static function removeByID(\$id, \$trans = null): bool
     {
         if (\$trans === null) {
-            \$transacation = self::getDI()->getSharedTransaction();
+            \$transaction = self::getDI()->getSharedTransaction();
         } else {
-            \$transacation = \$trans;
+            \$transaction = \$trans;
         }
 
         try {
-            \$result = %s::model()->removeByID(\$id, \$transacation);
-            
-            
+            \$result = %s::model()->removeByID(\$id, \$transaction);
+
+
             if (\$trans === null) {
-                \$transacation->commit();
+                \$transaction->commit();
             }
             return true;
         } catch (\App\Components\ModuleServiceException \$e) {
             self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
             if (\$trans === null) {
-                \$transacation->rollback();
+                \$transaction->rollback();
             }
 
             return false;

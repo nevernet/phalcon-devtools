@@ -17,7 +17,7 @@
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
   |          Serghei Iakovlev <serghei@phalconphp.com>                     |
   +------------------------------------------------------------------------+
-*/
+ */
 
 namespace Phalcon\Generator;
 
@@ -229,7 +229,7 @@ EOD;
         $annotate = false,
         $customFieldName = null
     ) {
-        $fieldName = $customFieldName ?: $field->getName();
+        $fieldName = $customFieldName ? : $field->getName();
 
         if ($annotate) {
             $templateAttributes = <<<EOD
@@ -618,7 +618,7 @@ EOT;
         $tempLine = <<<EOD
             %s
 EOD;
-        $template    = <<<EOD
+        $template = <<<EOD
     /**
      * rules define
      * @return array
@@ -630,7 +630,7 @@ EOD;
         ];
     }
 EOD;
-        $str         = '';
+        $str = '';
         foreach ($rules as $key => $fields) {
             if (empty($fields)) {
                 continue;
@@ -638,7 +638,7 @@ EOD;
 
             if ($key === 'length') {
                 foreach ($fields as $field => $options) {
-                    $str .= vsprintf($lengthTempl, [$field, $options['max']]).PHP_EOL;
+                    $str .= vsprintf($lengthTempl, [$field, $options['max']]) . PHP_EOL;
                 }
                 continue;
             }
@@ -674,7 +674,7 @@ EOT;
 
         $strs = '';
         foreach ($fieldMaps as $k => $v) {
-            $strs .= vsprintf($line, [$k, $v]).PHP_EOL;
+            $strs .= vsprintf($line, [$k, $v]) . PHP_EOL;
         }
 
         return vsprintf($template, [$strs]);
@@ -820,6 +820,14 @@ EOT;
      */
     public function getList(\$params = [])
     {
+        // 这种缓存一般用在self::find里面，不支持fetchAll等方式。
+        // 创建依赖
+        //\$dependecy = new MemCacheDependency(\KeyDef::\$testDependencyDef);
+        // 清除依赖缓存
+        //\$dependecy->refresh();
+        // 设置缓存
+        //self::cache($dependecy, \KeyDef::\$testDependencyDef[1]);
+
         if (empty(\$params['page']) || \$params['page'] < 1) {
             \$params['page'] = 1;
         }
@@ -888,7 +896,8 @@ EOT;
      * @param $modelName
      * @return string
      */
-    public function getServiceSkeleton($namespace, $use, $className, $modelName) {
+    public function getServiceSkeleton($namespace, $use, $className, $modelName)
+    {
         $template = <<<EOT
 <?php
 namespace %s;
@@ -992,8 +1001,10 @@ class %s extends \App\Components\ModuleServiceBase
     }
 }
 EOT;
-        return vsprintf($template, [$namespace, $use, $className,
+        return vsprintf($template, [
+            $namespace, $use, $className,
             $modelName, $modelName, $modelName, $modelName,
-            $modelName, $modelName, $modelName, $modelName]);
+            $modelName, $modelName, $modelName, $modelName
+        ]);
     }
 }

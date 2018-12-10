@@ -822,11 +822,11 @@ EOT;
     {
         // 这种缓存一般用在self::find里面，不支持fetchAll等方式。
         // 创建依赖
-        //\$dependecy = new MemCacheDependency(\KeyDef::\$testDependencyDef);
+        //\$dependency = new MemCacheDependency(\KeyDef::\$testDependencyDef);
         // 清除依赖缓存
-        //\$dependecy->refresh();
+        //\$dependency->refresh();
         // 设置缓存
-        //self::cache($dependecy, \KeyDef::\$testDependencyDef[1]);
+        //self::cache(\$dependency, \KeyDef::\$testDependencyDef[1]);
 
         if (empty(\$params['page']) || \$params['page'] < 1) {
             \$params['page'] = 1;

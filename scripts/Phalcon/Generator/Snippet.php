@@ -687,43 +687,93 @@ EOT;
     {
         $template = <<<EOT
     /**
-     * [\$p1, \$p2等是固定参数， \$param是剩余的其他参数，一般修改\$p1, \$p2即可，记得更新本注释]
-     * dmeo for add
-     *
-     * @param \$p1
-     * @param \$p2
      * @param array \$params
-     * @param null \$trans
-     * @return bool
-     * @throws \Exception
+     * @param null|Transaction \$transaction
+     * @return int
      */
-    public function add(\$p1, \$p2, \$params = [], \$trans = null)
+    public function create(array \$params, ?Transaction \$transaction = null): int
     {
-        // 建议采用直接赋值方式，避免table更新等字段不一致问题
-        \$model     = new self;
-        \$model->p1 = \$p1;
-        \$model->p2 = \$p2;
-        // 赋值其他字段
-
-        if (\$trans !== null) {
-            \$model->setTransaction(\$trans);
+        \$model = new self();
+        if (\$transaction != null) {
+            \$model->setTransaction(\$transaction);
         }
+        \$model->scenario = 'insert';
 
-        if (!\$model->save()) {
-            \$errorMsg = \$this->getMessageAsString(\$model);
-            \$this->logger->error('add operation failed: ' . \$errorMsg);
-            throw new \App\Components\ModelException('新增操作失败');
+        if (!\$model->create($params)) {
+            \$this->logger->error("创建{\$this->useTable}记录失败:" .\ $this->getMessageAsString(\$model));
+            return 0;
         }
+        return \$model->id;
     }
 
     /**
-     * [demo for delete, 主要是参考一下wirteConnection的一些用法. 记得修改本注释]
-     *
-     * @param \$id
-     * @param null \$transaction
+     * @param int \$id
+     * @param null|Transaction \$transaction
+     * @return bool
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public function removeRecordByID(int \$id, ?Transaction \$transaction = null): bool
+    {
+        \$obj = self::findFirst([
+            'conditions' => 'id=?0',
+            'bind' => [\$id]
+        ]);
+        if (!\$obj) {
+            $this->logger->error('不存在的记录', -1);
+            throw new \App\Components\ModelException('不存在的记录');
+            return false;
+        }
+
+        if (\$transaction != null) {
+            \$obj->setTransaction(\$transaction);
+        }
+
+        \$obj->scenario = 'update';
+        \$obj->status = self::STATUS_DELETED;
+        if (!\$obj->update()) {
+            $this->logger->error("删除{\$this->userTable}表数据失败:" . \$this->getMessageAsString(\$obj));
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param int \$id
+     * @param array \$params
+     * @param null|Transaction \$transaction
+     * @return bool
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public function updateRecordById(int \$id, array \$params, ?Transaction \$transaction = null): bool
+    {
+        \$obj = self::findFirst([
+            'conditions' => 'id=?0',
+            'bind' => [\$id]
+        ]);
+        if (!\$obj) {
+            $this->logger->error('不存在的记录', -1);
+            throw new \App\Components\ModelException('不存在的记录');
+            return false;
+        }
+        if (\$transaction !== null) {
+            \$obj->setTransaction(\$transaction);
+        }
+
+        \$obj->scenario = 'update';
+        if (!\$obj->update(\$params)) {
+            \$this->logger->error("更新{\$this->useTable}记录失败:" . \$this->getMessageAsString(\$obj));
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * [demo code]
+     * @param int \$id
+     * @param null|Transaction \$transaction
      * @return bool
      */
-    public function removeByID(\$id, \$transaction = null)
+    public function removeByID(int \$id, ?Transaction \$transaction = null): bool
     {
         \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
             'conditions' => 'id=?',
@@ -734,13 +784,30 @@ EOT;
     }
 
     /**
+     * [demo code]
+     * @param int \$id
+     * @param array \$params
+     * @param null|Transaction \$transaction
+     * @return bool
+     */
+    public function updateByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
+    {
+        \$result = \$this->writeConnection->updateAsDict(\$this->useTable, \$params, [
+            'conditions' => 'id=?',
+            'bind'       => [\$id],
+        ]);
+
+        return \$result;
+    }
+
+    /**
      * [demo for getInfo，类似的get方法都可以采用这种模式，记得更新本注释]
      *
-     * @param \$id
-     * @return array|mixed
+     * @param int \$id
+     * @return array
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function getInfoById(\$id)
+    public function getInfoById(int \$id): array
     {
         // self::cached(\KeyDef::\$testKeyDef, [\$id]);
         \$obj = self::findFirst([
@@ -757,12 +824,12 @@ EOT;
     /**
      * patch Info demo
      *
-     * @param \$list
+     * @param array \$list
      * @param string \$columnName
      * @param string \$patchColumn
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function patchInfo(&\$list, \$columnName = 'xxx_id', \$patchColumn = 'xxx_info')
+    public function patchInfo(array &\$list, string \$columnName = 'xxx_id', string \$patchColumn = 'xxx_info'): void
     {
         \$ids = \xLab\Phalcon\Collection\ZArray::collectField(\$list, \$columnName);
         \$ids = array_filter(\$ids, function (\$id, \$key) {
@@ -813,14 +880,13 @@ EOT;
     }
 
     /**
-     * [getList demo, 记得更新本注释]
-     *
      * @param array \$params
      * @return array
+     * @throws \App\Components\LogicException
+     * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function getList(\$params = [])
+    public function getList(array $params = []): array
     {
-        // 这种缓存一般用在self::find里面，不支持fetchAll等方式。
         // 创建依赖
         //\$dependency = new MemCacheDependency(\KeyDef::\$testDependencyDef);
         // 清除依赖缓存
@@ -831,11 +897,66 @@ EOT;
         if (empty(\$params['page']) || \$params['page'] < 1) {
             \$params['page'] = 1;
         }
-        \$offset   = (\$params['page'] - 1) * self::PAGESIZE;
+        if (empty(\$params['limit']) || \$params['limit'] < 1 || \$params['limit'] > MAX_PAGE_SIZE) {
+            \$params['limit'] = self::PAGE_SIZE;
+        }
+        \$offset = (\$params['page'] - 1) * \$params['limit'];
         \$pageInfo = [
-            'current_page' => \$params['page'],
-            'total'        => 0,
-            'per_pages'    => self::PAGESIZE,
+            'current_page' => (int)\$params['page'],
+            'per_pages' => (int)\$params['limit'],
+            'total' => 0
+        ];
+
+        $bind = [];
+        $conditions = [];
+
+        // demo code
+        if (!empty(\$params['status'])) {
+            // array_push(\$conditions, 'status<:status:');
+            // \$bind['status'] = self::STATUS_DELETED;
+        }
+
+        \$obj = self::findFirst([
+            'conditions' => implode(' and ', \$conditions),
+            'bind' => \$bind,
+            'columns' => 'count(id) as total'
+        ]);
+        if (\$obj->total == 0) {
+            return ['list' => [], 'pageinfo' => \$pageInfo];
+        }
+        \$pageInfo['total'] = (int)\$obj->total;
+
+        \$list = self::find([
+            'conditions' => implode(' and ', \$conditions),
+            'bind' => \$bind,
+            'columns' => '*', // demo code
+            'order' => 'id desc',
+            'offset' => \$offset,
+            'limit' => \$params['limit']
+        ])->toArray();
+
+        return ['list' => $list, 'pageinfo' => \$pageInfo];
+    }
+
+    /**
+     * [getList demo, 记得更新本注释]
+     *
+     * @param array \$params
+     * @return array
+     */
+    public function getListBySQL(array \$params = []): array
+    {
+        if (empty(\$params['page']) || \$params['page'] < 1) {
+            \$params['page'] = 1;
+        }
+        if (empty(\$params['limit']) || \$params['limit'] < 1 || \$params['limit'] > MAX_PAGE_SIZE) {
+            \$params['limit'] = self::PAGE_SIZE;
+        }
+        \$offset = (\$params['page'] - 1) * \$params['limit'];
+        \$pageInfo = [
+            'current_page' => (int)\$params['page'],
+            'per_pages' => (int)\$params['limit'],
+            'total' => 0
         ];
 
         \$sql      = "SELECT * FROM {\$this->useDb}.{\$this->useTable} a";
@@ -907,14 +1028,12 @@ use %s;
 class %s extends \App\Components\ModuleServiceBase
 {
     /**
-     * @param \$p1
-     * @param \$p2
      * @param array \$params
-     * @param null \$trans
-     * @return bool
+     * @param null|Transaction \$trans
+     * @return int
      * @throws \Exception
      */
-    public static function add(\$p1, \$p2, \$params = [], \$trans = null)
+    public static function create(array \$params = [], ?Transaction \$trans = null): int
     {
         if (\$trans === null) {
             \$transaction = self::getDI()->getSharedTransaction();
@@ -923,13 +1042,45 @@ class %s extends \App\Components\ModuleServiceBase
         }
 
         try {
-            \$result = %s::model()->add(\$p1, \$p2, \$params, \$trans);
+            \$result = %s::model()->create(\$params, \$trans);
+
+            if (\$trans === null) {
+                \$transaction->commit();
+            }
+            return \$result;
+        } catch (\App\Components\ModelException \$e) {
+            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            if (\$trans === null) {
+                \$transaction->rollback();
+            }
+
+            return 0;
+        }
+    }
+
+    /**
+     * @param int \$id
+     * @param array \$params
+     * @param null \$transaction
+     * @return bool
+     */
+    public static function updateRecordByID(int \$id, array \$params ?Transaction \$trans = null): bool
+    {
+        if (\$trans === null) {
+            \$transaction = self::getDI()->getSharedTransaction();
+        } else {
+            \$transaction = \$trans;
+        }
+
+        try {
+            \$result = %s::model()->updateRecordByID(\$id, \$transaction);
+
 
             if (\$trans === null) {
                 \$transaction->commit();
             }
             return true;
-        } catch (\App\Components\ModuleServiceException \$e) {
+        } catch (\App\Components\ModelException \$e) {
             self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
             if (\$trans === null) {
                 \$transaction->rollback();
@@ -940,11 +1091,74 @@ class %s extends \App\Components\ModuleServiceBase
     }
 
     /**
-     * @param \$id
+     * @param int \$id
      * @param null \$transaction
      * @return bool
      */
-    public static function removeByID(\$id, \$trans = null): bool
+    public static function removeRecordByID(int \$id, ?Transaction \$trans = null): bool
+    {
+        if (\$trans === null) {
+            \$transaction = self::getDI()->getSharedTransaction();
+        } else {
+            \$transaction = \$trans;
+        }
+
+        try {
+            \$result = %s::model()->removeRecordByID(\$id, \$transaction);
+
+
+            if (\$trans === null) {
+                \$transaction->commit();
+            }
+            return true;
+        } catch (\App\Components\ModelException \$e) {
+            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            if (\$trans === null) {
+                \$transaction->rollback();
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * @param int \$id
+     * @param array \$params
+     * @param null|Transaction \$transaction
+     * @return bool
+     */
+    public static function updateByID(int \$id, array $params, ?Transaction \$trans = null): bool
+    {
+        if (\$trans === null) {
+            \$transaction = self::getDI()->getSharedTransaction();
+        } else {
+            \$transaction = \$trans;
+        }
+
+        try {
+            \$result = %s::model()->updateByID(\$id, $params, \$transaction);
+
+
+            if (\$trans === null) {
+                \$transaction->commit();
+            }
+            return true;
+        } catch (\App\Components\ModelException \$e) {
+            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
+            if (\$trans === null) {
+                \$transaction->rollback();
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * @param int \$id
+     * @param null|Transaction \$transaction
+     * @return bool
+     */
+    public static function removeByID(int \$id, ?Transaction \$trans = null): bool
     {
         if (\$trans === null) {
             \$transaction = self::getDI()->getSharedTransaction();
@@ -960,7 +1174,7 @@ class %s extends \App\Components\ModuleServiceBase
                 \$transaction->commit();
             }
             return true;
-        } catch (\App\Components\ModuleServiceException \$e) {
+        } catch (\App\Components\ModelException \$e) {
             self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
             if (\$trans === null) {
                 \$transaction->rollback();
@@ -999,12 +1213,22 @@ class %s extends \App\Components\ModuleServiceBase
     {
         return %s::model()->getList(\$params);
     }
+
+    /**
+     * @param array \$params
+     * @return array
+     */
+    public static function getListBySQL(\$params = [])
+    {
+        return %s::model()->getListBySQL(\$params);
+    }
 }
 EOT;
         return vsprintf($template, [
             $namespace, $use, $className,
+            $modelName, $modelName, $modelName,
             $modelName, $modelName, $modelName, $modelName,
-            $modelName, $modelName, $modelName, $modelName
+            $modelName, $modelName, $modelName, $modelName, $modelName
         ]);
     }
 }

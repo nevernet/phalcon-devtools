@@ -1104,7 +1104,7 @@ class %s extends \App\Components\ModuleServiceBase
         if (empty(\$ids)) {
             return [];
         }
-        \$ids = array_value(array_unique(\$ids));
+        \$ids = array_values(array_unique(\$ids));
         return %s::model()->getInfoByIds(\$ids);
     }
 

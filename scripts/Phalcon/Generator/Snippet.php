@@ -699,8 +699,8 @@ EOT;
         }
         \$model->scenario = 'insert';
 
-        if (!\$model->create($params)) {
-            \$this->logger->error("创建{\$this->useTable}记录失败:" .\ $this->getMessageAsString(\$model));
+        if (!\$model->create(\$params)) {
+            \$this->logger->error("创建{\$this->useTable}记录失败:" . \$this->getMessageAsString(\$model));
             return 0;
         }
         return \$model->id;
@@ -719,9 +719,8 @@ EOT;
             'bind' => [\$id]
         ]);
         if (!\$obj) {
-            $this->logger->error('不存在的记录', -1);
+            \$this->logger->error('不存在的记录', -1);
             throw new \App\Components\ModelException('不存在的记录');
-            return false;
         }
 
         if (\$transaction != null) {
@@ -731,7 +730,7 @@ EOT;
         \$obj->scenario = 'update';
         \$obj->status = self::STATUS_DELETED;
         if (!\$obj->update()) {
-            $this->logger->error("删除{\$this->userTable}表数据失败:" . \$this->getMessageAsString(\$obj));
+            \$this->logger->error("删除{\$this->userTable}表数据失败:" . \$this->getMessageAsString(\$obj));
             return false;
         }
         return true;
@@ -744,16 +743,15 @@ EOT;
      * @return bool
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function updateRecordById(int \$id, array \$params, ?Transaction \$transaction = null): bool
+    public function updateRecordByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
     {
         \$obj = self::findFirst([
             'conditions' => 'id=?0',
             'bind' => [\$id]
         ]);
         if (!\$obj) {
-            $this->logger->error('不存在的记录', -1);
+            \$this->logger->error('不存在的记录', -1);
             throw new \App\Components\ModelException('不存在的记录');
-            return false;
         }
         if (\$transaction !== null) {
             \$obj->setTransaction(\$transaction);
@@ -885,7 +883,7 @@ EOT;
      * @throws \App\Components\LogicException
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function getList(array $params = []): array
+    public function getList(array \$params = []): array
     {
         // 创建依赖
         //\$dependency = new MemCacheDependency(\KeyDef::\$testDependencyDef);
@@ -907,8 +905,8 @@ EOT;
             'total' => 0
         ];
 
-        $bind = [];
-        $conditions = [];
+        \$bind = [];
+        \$conditions = [];
 
         // demo code
         if (!empty(\$params['status'])) {
@@ -935,7 +933,7 @@ EOT;
             'limit' => \$params['limit']
         ])->toArray();
 
-        return ['list' => $list, 'pageinfo' => \$pageInfo];
+        return ['list' => \$list, 'pageinfo' => \$pageInfo];
     }
 
     /**
@@ -1064,7 +1062,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param null \$transaction
      * @return bool
      */
-    public static function updateRecordByID(int \$id, array \$params ?Transaction \$trans = null): bool
+    public static function updateRecordByID(int \$id, array \$params, ?Transaction \$trans = null): bool
     {
         if (\$trans === null) {
             \$transaction = self::getDI()->getSharedTransaction();
@@ -1127,7 +1125,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param null|Transaction \$transaction
      * @return bool
      */
-    public static function updateByID(int \$id, array $params, ?Transaction \$trans = null): bool
+    public static function updateByID(int \$id, array \$params, ?Transaction \$trans = null): bool
     {
         if (\$trans === null) {
             \$transaction = self::getDI()->getSharedTransaction();
@@ -1136,7 +1134,7 @@ class %s extends \App\Components\ModuleServiceBase
         }
 
         try {
-            \$result = %s::model()->updateByID(\$id, $params, \$transaction);
+            \$result = %s::model()->updateByID(\$id, \$params, \$transaction);
 
 
             if (\$trans === null) {

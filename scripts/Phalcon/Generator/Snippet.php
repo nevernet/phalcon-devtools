@@ -162,6 +162,7 @@ EOD;
 }
 EOD;
 
+$useDefinition .= 'use Phalcon\Mvc\Model\Transaction;' . PHP_EOL;
         return sprintf(
             $templateCode,
             $license,
@@ -687,11 +688,12 @@ EOT;
     {
         $template = <<<EOT
     /**
+     * 创建记录
      * @param array \$params
      * @param null|Transaction \$transaction
      * @return int
      */
-    public function create(array \$params, ?Transaction \$transaction = null): int
+    public function add(array \$params, ?Transaction \$transaction = null): int
     {
         \$model = new self();
         if (\$transaction != null) {
@@ -707,6 +709,7 @@ EOT;
     }
 
     /**
+     * AR方式根据id删除指定记录
      * @param int \$id
      * @param null|Transaction \$transaction
      * @return bool
@@ -728,15 +731,16 @@ EOT;
         }
 
         \$obj->scenario = 'update';
-        \$obj->status = self::STATUS_DELETED;
+        \$obj->status = 99;
         if (!\$obj->update()) {
-            \$this->logger->error("删除{\$this->userTable}表数据失败:" . \$this->getMessageAsString(\$obj));
+            \$this->logger->error("删除{\$this->useTable}表数据失败:" . \$this->getMessageAsString(\$obj));
             return false;
         }
         return true;
     }
 
     /**
+     * AR方式根据id更新指定记录
      * @param int \$id
      * @param array \$params
      * @param null|Transaction \$transaction
@@ -766,12 +770,11 @@ EOT;
     }
 
     /**
-     * [demo code]
+     * 直接通过id删除指定记录
      * @param int \$id
-     * @param null|Transaction \$transaction
      * @return bool
      */
-    public function removeByID(int \$id, ?Transaction \$transaction = null): bool
+    public function removeByID(int \$id): bool
     {
         \$result = \$this->writeConnection->updateAsDict(\$this->useTable, ['status' => 99], [
             'conditions' => 'id=?',
@@ -782,13 +785,12 @@ EOT;
     }
 
     /**
-     * [demo code]
+     * 直接通过id更新指定记录
      * @param int \$id
      * @param array \$params
-     * @param null|Transaction \$transaction
      * @return bool
      */
-    public function updateByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
+    public function updateByID(int \$id, array \$params): bool
     {
         \$result = \$this->writeConnection->updateAsDict(\$this->useTable, \$params, [
             'conditions' => 'id=?',
@@ -799,8 +801,7 @@ EOT;
     }
 
     /**
-     * [demo for getInfo，类似的get方法都可以采用这种模式，记得更新本注释]
-     *
+     * 获取指定id的数据
      * @param int \$id
      * @return array
      * @throws \xLab\Phalcon\Mvc\Exception
@@ -858,11 +859,11 @@ EOT;
     }
 
     /**
-     * @param \$IDs
+     * @param array \$IDs
      * @return array
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public function getInfoByIDs(\$IDs)
+    public function getInfoByIDs(array \$IDs): array
     {
         // 这里的cache key一定跟getInfoByID一致，但是cached里面不用传参数
         // self::cached(\KeyDef::\$testKeyDef);
@@ -880,7 +881,6 @@ EOT;
     /**
      * @param array \$params
      * @return array
-     * @throws \App\Components\LogicException
      * @throws \xLab\Phalcon\Mvc\Exception
      */
     public function getList(array \$params = []): array
@@ -990,7 +990,7 @@ EOT;
             \$sql      .= " where " . implode(' and ', \$conditions);
         }
 
-        \$sql   .= " order by a.id desc limit {\$offset}, " . self::PAGESIZE;
+        \$sql   .= " order by a.id desc limit {\$offset}, " . self::PAGE_SIZE;
         \$count = \$this->readConnection->fetchOne(\$sqlCount, \Phalcon\Db::FETCH_ASSOC, \$binds);
 
         \$pageInfo['total'] = \$count['count'];
@@ -1022,174 +1022,90 @@ EOT;
 namespace %s;
 
 use %s;
+use Phalcon\Mvc\Model\Transaction;
 
 class %s extends \App\Components\ModuleServiceBase
 {
     /**
+     * 创建记录
      * @param array \$params
-     * @param null|Transaction \$trans
+     * @param null|Transaction \$transaction
      * @return int
      * @throws \Exception
      */
-    public static function create(array \$params = [], ?Transaction \$trans = null): int
+    public static function add(array \$params = [], ?Transaction \$transaction = null): int
     {
-        if (\$trans === null) {
-            \$transaction = self::getDI()->getSharedTransaction();
-        } else {
-            \$transaction = \$trans;
-        }
-
-        try {
-            \$result = %s::model()->create(\$params, \$trans);
-
-            if (\$trans === null) {
-                \$transaction->commit();
-            }
-            return \$result;
-        } catch (\App\Components\ModelException \$e) {
-            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            if (\$trans === null) {
-                \$transaction->rollback();
-            }
-
-            return 0;
-        }
+        return %s::model()->add(\$params, \$transaction);
     }
 
     /**
-     * @param int \$id
-     * @param array \$params
-     * @param null \$transaction
-     * @return bool
-     */
-    public static function updateRecordByID(int \$id, array \$params, ?Transaction \$trans = null): bool
-    {
-        if (\$trans === null) {
-            \$transaction = self::getDI()->getSharedTransaction();
-        } else {
-            \$transaction = \$trans;
-        }
-
-        try {
-            \$result = %s::model()->updateRecordByID(\$id, \$transaction);
-
-
-            if (\$trans === null) {
-                \$transaction->commit();
-            }
-            return true;
-        } catch (\App\Components\ModelException \$e) {
-            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            if (\$trans === null) {
-                \$transaction->rollback();
-            }
-
-            return false;
-        }
-    }
-
-    /**
-     * @param int \$id
-     * @param null \$transaction
-     * @return bool
-     */
-    public static function removeRecordByID(int \$id, ?Transaction \$trans = null): bool
-    {
-        if (\$trans === null) {
-            \$transaction = self::getDI()->getSharedTransaction();
-        } else {
-            \$transaction = \$trans;
-        }
-
-        try {
-            \$result = %s::model()->removeRecordByID(\$id, \$transaction);
-
-
-            if (\$trans === null) {
-                \$transaction->commit();
-            }
-            return true;
-        } catch (\App\Components\ModelException \$e) {
-            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            if (\$trans === null) {
-                \$transaction->rollback();
-            }
-
-            return false;
-        }
-    }
-
-    /**
+     * 通过id更新指定记录（多了一次查询操作），支持事务传递
      * @param int \$id
      * @param array \$params
      * @param null|Transaction \$transaction
      * @return bool
      */
-    public static function updateByID(int \$id, array \$params, ?Transaction \$trans = null): bool
+    public static function updateRecordByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
     {
-        if (\$trans === null) {
-            \$transaction = self::getDI()->getSharedTransaction();
-        } else {
-            \$transaction = \$trans;
-        }
-
-        try {
-            \$result = %s::model()->updateByID(\$id, \$params, \$transaction);
-
-
-            if (\$trans === null) {
-                \$transaction->commit();
-            }
-            return true;
-        } catch (\App\Components\ModelException \$e) {
-            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            if (\$trans === null) {
-                \$transaction->rollback();
-            }
-
-            return false;
-        }
+        return %s::model()->updateRecordByID(\$id, \$transaction);
     }
 
     /**
+     * 通过id删除指定记录（多了一次查询操作），支持事务传递
      * @param int \$id
      * @param null|Transaction \$transaction
      * @return bool
      */
-    public static function removeByID(int \$id, ?Transaction \$trans = null): bool
+    public static function removeRecordByID(int \$id, ?Transaction \$transaction = null): bool
     {
-        if (\$trans === null) {
-            \$transaction = self::getDI()->getSharedTransaction();
-        } else {
-            \$transaction = \$trans;
-        }
-
-        try {
-            \$result = %s::model()->removeByID(\$id, \$transaction);
-
-
-            if (\$trans === null) {
-                \$transaction->commit();
-            }
-            return true;
-        } catch (\App\Components\ModelException \$e) {
-            self::getLogger()->error(\$e->getMessage() . PHP_EOL . \$e->getTraceAsString());
-            if (\$trans === null) {
-                \$transaction->rollback();
-            }
-
-            return false;
-        }
+       return %s::model()->removeRecordByID(\$id, \$transaction);
     }
 
     /**
-     * @param \$id
+     * 通过id直接更新指定的记录
+     * @param int \$id
+     * @param array \$params
+     * @return bool
+     */
+    public static function updateByID(int \$id, array \$params): bool
+    {
+        return %s::model()->updateByID(\$id, \$params);
+    }
+
+    /**
+     * 通过id直接删除指定记录
+     * @param int \$id
+     * @return bool
+     */
+    public static function removeByID(int \$id): bool
+    {
+        return %s::model()->removeByID(\$id);
+    }
+
+    /**
+     * 通过id获取指定记录的数据
+     * @param int \$id
      * @return array|mixed
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public static function getInfoById(\$id)
+    public static function getInfoById(int \$id): array
     {
         return %s::model()->getInfoById(\$id);
+    }
+
+    /**
+     * 获取多个id的数据
+     * @param array \$ids
+     * @return array|mixed
+     * @throws \xLab\Phalcon\Mvc\Exception
+     */
+    public static function getInfoByIds(array \$ids): array
+    {
+        if (empty(\$ids)) {
+            return [];
+        }
+        \$ids = array_value(array_unique(\$ids));
+        return %s::model()->getInfoByIds(\$ids);
     }
 
     /**
@@ -1198,7 +1114,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param string \$patchColumn
      * @throws \xLab\Phalcon\Mvc\Exception
      */
-    public static function patchInfo(&\$list, \$columnName = 'xxx_id', \$patchColumn = 'xxx_info')
+    public static function patchInfo(&\$list, string \$columnName = 'xxx_id', string \$patchColumn = 'xxx_info')
     {
         %s::model()->patchInfo(\$list, \$columnName, \$patchColumn);
     }
@@ -1207,7 +1123,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param array \$params
      * @return array
      */
-    public static function getList(\$params = [])
+    public static function getList(array \$params = []): array
     {
         return %s::model()->getList(\$params);
     }
@@ -1216,7 +1132,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param array \$params
      * @return array
      */
-    public static function getListBySQL(\$params = [])
+    public static function getListBySQL(array \$params = []): array
     {
         return %s::model()->getListBySQL(\$params);
     }

@@ -719,8 +719,8 @@ EOT;
             'bind' => [\$id]
         ]);
         if (!\$obj) {
-            \$this->logger->error('不存在的记录', -1);
-            throw new \App\Components\ModelException('不存在的记录');
+            \$this->logger->error('不存在的记录');
+            throw new \App\Components\ModelException('不存在的记录', -1);
         }
 
         if (\$transaction != null) {
@@ -750,8 +750,8 @@ EOT;
             'bind' => [\$id]
         ]);
         if (!\$obj) {
-            \$this->logger->error('不存在的记录', -1);
-            throw new \App\Components\ModelException('不存在的记录');
+            \$this->logger->error('不存在的记录');
+            throw new \App\Components\ModelException('不存在的记录', -1);
         }
         if (\$transaction !== null) {
             \$obj->setTransaction(\$transaction);

@@ -1047,7 +1047,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function updateRecordByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
     {
-        return %s::model()->updateRecordByID(\$id, \$transaction);
+        return %s::model()->updateRecordByID(\$id, \$params, \$transaction);
     }
 
     /**

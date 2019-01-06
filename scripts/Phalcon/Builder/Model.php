@@ -445,6 +445,18 @@ class Model extends Component
                 if(count($diffFieldNames) > 0) {
                     print Color::error(sprintf("%s缺少的字段: %s", $fullClassName, implode(',', $diffFieldNames)));
                 }
+                $diffFieldNames = array_diff($hasFieldNames, $preparedFields);
+                // 去除默认的字段.
+                $_diffExcluded = 'useDb,useTable,msg,instance,cacheKey,cacheParams,cacheLifetime,dependency,inParams,hydrationMode,cache,readConnection,writeConnection,scenario,validators,logger,staticLogger';
+                $diffExcluded = explode(',', $_diffExcluded);
+                foreach($diffFieldNames as $k=>$v) {
+                    if(substr($v, 0, 1) === '_' || in_array($v, $diffExcluded)) {
+                        unset($diffFieldNames[$k]);
+                    }
+                }
+                if(count($diffFieldNames) > 0) {
+                    print Color::error(sprintf("db里面已经删除，但是%s还存在的字段: %s", $fullClassName, implode(',', $diffFieldNames)));
+                }
 
             } catch (\Exception $e) {
                 throw new RuntimeException(

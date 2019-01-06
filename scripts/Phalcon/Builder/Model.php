@@ -333,7 +333,8 @@ class Model extends Component
                 $preparedMethods = ['add', 'removeRecordByID', 'updateRecordByID', 'removeByID', 'updateByID', 'getInfoById', 'patchInfo', 'getInfoByIDs', 'getList', 'getListBySQL'];
                 $diffMethodNames = array_diff($preparedMethods, $hasMethodNames);
                 if(count($diffMethodNames) > 0) {
-                    print Color::error(sprintf("%s缺少方法: %s", $fullClassName, implode(',', $diffMethodNames)));
+                    // print Color::error(sprintf("%s缺少方法: %s", $fullClassName, implode(',', $diffMethodNames)));
+                    print sprintf("%s是老的Model，考虑替换，缺少方法:%s\n", $fullClassName, implode(',', $diffMethodNames));
                 }
 
                 $possibleFields = [];

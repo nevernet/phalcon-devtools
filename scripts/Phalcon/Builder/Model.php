@@ -35,6 +35,7 @@ use Phalcon\Utils;
 use Phalcon\Validation;
 use Phalcon\Validation\Validator\Email as EmailValidator;
 use ReflectionClass;
+use Phalcon\Script\Color;
 
 /**
  * ModelBuilderComponent
@@ -112,7 +113,7 @@ class Model extends Component
         $this->setModelsDir();
         $this->setModelPath();
 
-        //support custom db
+        // support custom db
         $customDb = $this->modelOptions->getOption('db');
         if ($customDb != null) {
             $config->database = $config->$customDb;
@@ -123,6 +124,11 @@ class Model extends Component
         }
 
         $modelPath = $this->modelOptions->getOption('modelPath');
+        $directoryName = dirname($modelPath);
+        // 自动创建目录，不用人工提前创建
+        if(!file_exists($directoryName)) {
+            mkdir($directoryName, 0755, true);
+        }
 
         $this->checkDataBaseParam();
 
@@ -239,6 +245,11 @@ class Model extends Component
         $alreadyGetSourced   = false;
         $attributes          = [];
 
+        $fullClassName = $this->modelOptions->getOption('className');
+        if ($this->modelOptions->hasOption('namespace')) {
+            $fullClassName = $this->modelOptions->getOption('namespace').'\\'.$fullClassName;
+        }
+
         if (file_exists($modelPath)) {
             try {
                 $possibleMethods = [];
@@ -258,17 +269,20 @@ class Model extends Component
                 require_once $modelPath;
 
                 $linesCode     = file($modelPath);
-                $fullClassName = $this->modelOptions->getOption('className');
-                if ($this->modelOptions->hasOption('namespace')) {
-                    $fullClassName = $this->modelOptions->getOption('namespace').'\\'.$fullClassName;
-                }
-                $reflection = new ReflectionClass($fullClassName);
+                // $fullClassName = $this->modelOptions->getOption('className');
+                // if ($this->modelOptions->hasOption('namespace')) {
+                //     $fullClassName = $this->modelOptions->getOption('namespace').'\\'.$fullClassName;
+                // }
+                /* @var $reflection \ReflectionClass */
+                $reflection = new \ReflectionClass($fullClassName);
+                $hasMethodNames = [];
                 foreach ($reflection->getMethods() as $method) {
                     if ($method->getDeclaringClass()->getName() != $fullClassName) {
                         continue;
                     }
 
                     $methodName = $method->getName();
+                    $hasMethodNames[] = $methodName;
                     if (isset($possibleMethods[$methodName])) {
                         continue;
                     }
@@ -315,9 +329,18 @@ class Model extends Component
                     }
                 }
 
+                // 检查方法是否存在
+                $preparedMethods = ['add', 'removeRecordByID', 'updateRecordByID', 'removeByID', 'updateByID', 'getInfoById', 'patchInfo', 'getInfoByIDs', 'getList', 'getListBySQL'];
+                $diffMethodNames = array_diff($preparedMethods, $hasMethodNames);
+                if(count($diffMethodNames) > 0) {
+                    print Color::error(sprintf("%s缺少方法: %s", $fullClassName, implode(',', $diffMethodNames)));
+                }
+
                 $possibleFields = [];
+                $preparedFields = []; // 需要的字段
                 foreach ($fields as $field) {
                     $possibleFields[$field->getName()] = true;
+                    $preparedFields[] = $field->getName();
                 }
                 if (method_exists($reflection, 'getReflectionConstants')) {
                     foreach ($reflection->getReflectionConstants() as $constant) {
@@ -357,8 +380,10 @@ class Model extends Component
                     }
                 }
 
+                $hasFieldNames = [];
                 foreach ($reflection->getProperties() as $propertie) {
                     $propertieName = $propertie->getName();
+                    $hasFieldNames[] = $propertieName;
 
                     if ($propertie->getDeclaringClass()->getName() != $fullClassName ||
                         !empty($possibleFields[$propertieName])) {
@@ -415,6 +440,12 @@ class Model extends Component
                             $propertieDeclaration;
                     }
                 }
+
+                $diffFieldNames = array_diff($preparedFields, $hasFieldNames);
+                if(count($diffFieldNames) > 0) {
+                    print Color::error(sprintf("%s缺少的字段: %s", $fullClassName, implode(',', $diffFieldNames)));
+                }
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
                     sprintf(
@@ -474,7 +505,6 @@ class Model extends Component
             }
         }
 
-        $attributes        = [];
         $setters           = [];
         $getters           = [];
         $rules             = []; //customized rules for validation
@@ -606,32 +636,47 @@ class Model extends Component
             $license
         );
 
+        // !$this->modelOptions->getOption('force')
         if (file_exists($modelPath)) {
-            throw new WriteFileException(sprintf('file exist', $modelPath));
-        }
+            print sprintf("file exist: %s\n", $fullClassName);
+            // throw new WriteFileException(sprintf('file exist', $modelPath));
+        } else {
+            if (file_exists($modelPath) && !is_writable($modelPath)) {
+                throw new WriteFileException(sprintf('Unable to write to %s. Check write-access of a file.', $modelPath));
+            }
 
-        if (file_exists($modelPath) && !is_writable($modelPath)) {
-            throw new WriteFileException(sprintf('Unable to write to %s. Check write-access of a file.', $modelPath));
-        }
-
-        if (!file_put_contents($modelPath, $code)) {
-            throw new WriteFileException(sprintf('Unable to write to %s', $modelPath));
+            if (!file_put_contents($modelPath, $code)) {
+                throw new WriteFileException(sprintf('Unable to write to %s', $modelPath));
+            } else {
+                print sprintf("Model Created: %s\n", $fullClassName);
+            }
         }
 
         // 写入service
         $serviceUseCode = $this->modelOptions->getOption('namespace').'\\'.$className;
         $serviceCode = $snippet->getServiceSkeleton($serviceNamespace, $serviceUseCode, $serviceClassName, $className);
+        $fullServiceClassName = $serviceNamespace."\\".$serviceClassName;
 
         $servicePath = dirname(dirname($modelPath)).DIRECTORY_SEPARATOR.'Services'.DIRECTORY_SEPARATOR.$serviceClassName.'.php';
-        if (!file_put_contents($servicePath, $serviceCode)) {
-            throw new WriteFileException(sprintf('Unable to write to %s', $servicePath));
+        $servicePathName = dirname($servicePath);
+        // 自动创建servicePathName
+        if(!file_exists($servicePathName)) {
+            mkdir($servicePathName, 0755, true);
+        }
+        if(file_exists($servicePath)) {
+            print sprintf("file exist: %s\n", $fullServiceClassName);
+        } else {
+            if (!file_put_contents($servicePath, $serviceCode)) {
+                throw new WriteFileException(sprintf('Unable to write to %s', $servicePath));
+            }
+            print sprintf("Service Created: %s\n", $fullServiceClassName);
         }
 
-        if ($this->isConsole()) {
-            $msgSuccess = ($this->modelOptions->getOption('abstract') ? 'Abstract ' : '');
-            $msgSuccess .= 'Model "%s" was successfully created.';
-            $this->notifySuccess(sprintf($msgSuccess, Text::camelize($this->modelOptions->getOption('name'), '_-')));
-        }
+        // if ($this->isConsole()) {
+        //     $msgSuccess = ($this->modelOptions->getOption('abstract') ? 'Abstract ' : '');
+        //     $msgSuccess .= 'Model "%s" was successfully created.';
+        //     $this->notifySuccess(sprintf($msgSuccess, Text::camelize($this->modelOptions->getOption('name'), '_-')));
+        // }
     }
 
     /**
@@ -674,12 +719,12 @@ class Model extends Component
 
         $modelPath .= $this->modelOptions->getOption('className') . '.php';
 
-        if (file_exists($modelPath) && !$this->modelOptions->getOption('force')) {
-            throw new WriteFileException(sprintf(
-                'The model file "%s.php" already exists in models dir',
-                $this->modelOptions->getOption('className')
-            ));
-        }
+        // if (file_exists($modelPath) && !$this->modelOptions->getOption('force')) {
+        //     throw new WriteFileException(sprintf(
+        //         'The model file "%s.php" already exists in models dir',
+        //         $this->modelOptions->getOption('className')
+        //     ));
+        // }
 
         $this->modelOptions->setOption('modelPath', $modelPath);
     }

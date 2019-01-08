@@ -36,6 +36,7 @@ use Phalcon\Validation;
 use Phalcon\Validation\Validator\Email as EmailValidator;
 use ReflectionClass;
 use Phalcon\Script\Color;
+use Phalcon\Db;
 
 /**
  * ModelBuilderComponent
@@ -194,6 +195,12 @@ class Model extends Component
             throw new InvalidArgumentException(sprintf('Table "%s" does not exist.', $table));
         }
 
+        // 包含注释信息的字段
+        $fullFields = $db->fetchAll(sprintf("SHOW FULL COLUMNS FROM %s.%s", $schema, $table), Db::FETCH_ASSOC);
+        $fullFieldsMap = [];
+        foreach($fullFields as $v) {
+            $fullFieldsMap[$v['Field']] = $v;
+        }
         $fields = $db->describeColumns($table, $schema);
         $referenceList = $this->getReferenceList($schema, $db);
 
@@ -533,12 +540,14 @@ class Model extends Component
             $type         = $this->getPHPType($field->getType());
             $fieldName    = Utils::lowerCamelizeWithDelimiter($field->getName(), '-', true);
             $fieldName    = $this->modelOptions->getOption('camelize') ? Utils::lowerCamelize($fieldName) : $fieldName;
+            $fieldComment = $fullFieldsMap[$field->getName()]['Comment'];
             $attributes[] = $snippet->getAttributes(
                 $type,
                 $useSettersGetters ? 'protected' : 'public',
                 $field,
                 $this->modelOptions->getOption('annotate'),
-                $fieldName
+                $fieldName,
+                $fieldComment
             );
 
             if ($useSettersGetters) {

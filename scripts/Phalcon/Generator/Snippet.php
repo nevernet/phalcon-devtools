@@ -162,7 +162,7 @@ EOD;
 }
 EOD;
 
-$useDefinition .= 'use Phalcon\Mvc\Model\Transaction;' . PHP_EOL;
+        $useDefinition .= 'use Phalcon\Mvc\Model\Transaction;' . PHP_EOL;
         return sprintf(
             $templateCode,
             $license,
@@ -228,14 +228,15 @@ EOD;
         $visibility,
         \Phalcon\Db\ColumnInterface $field,
         $annotate = false,
-        $customFieldName = null
+        $customFieldName = null,
+        $comment = ''
     ) {
         $fieldName = $customFieldName ? : $field->getName();
 
         if ($annotate) {
             $templateAttributes = <<<EOD
     /**
-     *
+     * %s
      * @var %s%s%s
      * @Column(column="%s", type="%s"%s, nullable=%s)
      */
@@ -244,6 +245,7 @@ EOD;
 
             return PHP_EOL . sprintf(
                 $templateAttributes,
+                $comment,
                 $type,
                 $field->isPrimary() ? PHP_EOL . '     * @Primary' : '',
                 $field->isAutoIncrement() ? PHP_EOL . '     * @Identity' : '',
@@ -257,13 +259,14 @@ EOD;
         } else {
             $templateAttributes = <<<EOD
     /**
+     * %s
      *
      * @var %s
      */
     %s \$%s;
 EOD;
 
-            return PHP_EOL . sprintf($templateAttributes, $type, $visibility, $fieldName) . PHP_EOL;
+            return PHP_EOL . sprintf($templateAttributes, $comment, $type, $visibility, $fieldName) . PHP_EOL;
         }
     }
 

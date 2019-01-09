@@ -993,7 +993,7 @@ EOT;
             \$sql      .= " where " . implode(' and ', \$conditions);
         }
 
-        \$sql   .= " order by a.id desc limit {\$offset}, " . self::PAGE_SIZE;
+        \$sql   .= " order by a.id desc limit {\$offset}, " . \$params['limit'];
         \$count = \$this->readConnection->fetchOne(\$sqlCount, \Phalcon\Db::FETCH_ASSOC, \$binds);
 
         \$pageInfo['total'] = \$count['count'];

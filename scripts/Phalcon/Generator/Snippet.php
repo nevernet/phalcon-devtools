@@ -1047,6 +1047,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param array \$params
      * @param null|Transaction \$transaction
      * @return bool
+     * @throws \xLab\Phalcon\Mvc\Exception
      */
     public static function updateRecordByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
     {
@@ -1058,6 +1059,7 @@ class %s extends \App\Components\ModuleServiceBase
      * @param int \$id
      * @param null|Transaction \$transaction
      * @return bool
+     * @throws \xLab\Phalcon\Mvc\Exception
      */
     public static function removeRecordByID(int \$id, ?Transaction \$transaction = null): bool
     {
@@ -1125,6 +1127,7 @@ class %s extends \App\Components\ModuleServiceBase
     /**
      * @param array \$params
      * @return array
+     * @throws \xLab\Phalcon\Mvc\Exception
      */
     public static function getList(array \$params = []): array
     {

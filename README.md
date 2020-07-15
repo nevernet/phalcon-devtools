@@ -1,5 +1,6 @@
 # Phalcon Devtools
 
+[![Discord](https://img.shields.io/discord/310910488152375297?label=Discord)](http://phalcon.link/discord)
 [![Latest Version](https://img.shields.io/packagist/v/phalcon/devtools.svg?style=flat-square)][:devtools:]
 [![Software License](https://img.shields.io/badge/license-BSD--3-brightgreen.svg?style=flat-square)][:license:]
 [![Total Downloads](https://img.shields.io/packagist/dt/phalcon/devtools.svg?style=flat-square)][:packagist:]
@@ -71,6 +72,18 @@ bin/box build -v
 chmod +xr ./phalcon.phar
 # Test it!
 php ./phalcon.phar
+```
+
+## Build Docker Image
+
+Use make command to build the docker image, It will build the image named `phalcon`:
+```bash
+make image
+```
+
+And run container with following command:
+```bash
+docker run -it --rm phalcon
 ```
 
 ## Installation via Git

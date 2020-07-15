@@ -21,6 +21,7 @@
 
 namespace WebTools\Controllers;
 
+use PDOException;
 use Phalcon\Text;
 use Phalcon\Builder\Scaffold;
 use Phalcon\Mvc\Controller\Base;
@@ -57,7 +58,7 @@ class ScaffoldController extends Base
             try {
                 $tableName = $this->request->getPost('tableName', 'string');
 
-                $scaffoldBuilder = new Scaffold([
+                $options = [
                     'name'              => $tableName,
                     'schema'            => $this->request->getPost('schema', 'string'),
                     'force'             => $this->request->getPost('force', 'int'),
@@ -66,8 +67,9 @@ class ScaffoldController extends Base
                     'templatePath'      => $this->request->getPost('templatesPath', 'string'),
                     'templateEngine'    => $this->request->getPost('templateEngine', 'string'),
                     'modelsNamespace'   => $this->request->getPost('modelsNamespace', 'string'),
-                ]);
+                ];
 
+                $scaffoldBuilder = new Scaffold(array_merge($options, ['config' => $this->config->toArray()]));
                 $scaffoldBuilder->build();
 
                 $this->flashSession->success(
@@ -107,10 +109,17 @@ class ScaffoldController extends Base
         $this->tag->setDefault('templatesPath', $templatesPath);
         $this->tag->setDefault('schema', $this->dbUtils->resolveDbSchema());
 
+        try {
+            $tables = $this->dbUtils->listTables();
+        } catch (PDOException $PDOException) {
+            $tables = [];
+            $this->flash->error($PDOException->getMessage());
+        }
+
         $this->view->setVars(
             [
                 'page_subtitle'   => 'Generate code from template',
-                'tables'          => $this->dbUtils->listTables(),
+                'tables'          => $tables,
                 'template_path'   => $templatesPath,
                 'templateEngines' => [
                     'volt' => 'Volt',

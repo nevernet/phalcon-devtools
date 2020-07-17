@@ -1293,10 +1293,12 @@ namespace Phalcon\Mvc {
 		 * $robot->year = 1952;
 		 *
 		 * $robot->create();
+		 *
 		 * $robot->type = "hydraulic";
+		 *
 		 * $hasChanged = $robot->hasChanged("type"); // returns true
 		 * $hasChanged = $robot->hasChanged(["type", "name"]); // returns true
-		 * $hasChanged = $robot->hasChanged(["type", "name", true]); // returns false
+		 * $hasChanged = $robot->hasChanged(["type", "name"], true); // returns false
 		 *</code>
 		 *
 		 * @param string|array fieldName

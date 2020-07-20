@@ -50,7 +50,9 @@ EOD;
 
     public function getDatabaseSource($source)
     {
-        $getSource = '    public $useDb = \'%s\';';
+        $getSource = '    const PAGE_SIZE = 20;' . PHP_EOL .
+            '    const STATUS_DELETED = 99;' . PHP_EOL .
+            '    public $useDb = \'%s\';';
 
         return PHP_EOL . sprintf($getSource, $source) . PHP_EOL;
     }
@@ -231,7 +233,7 @@ EOD;
         $customFieldName = null,
         $comment = ''
     ) {
-        $fieldName = $customFieldName ? : $field->getName();
+        $fieldName = $customFieldName ?: $field->getName();
 
         if ($annotate) {
             $templateAttributes = <<<EOD

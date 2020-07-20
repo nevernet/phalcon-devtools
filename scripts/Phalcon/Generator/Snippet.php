@@ -1065,7 +1065,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function removeRecordByID(int \$id, ?Transaction \$transaction = null): bool
     {
-       return %s::model()->removeRecordByID(\$id, \$transaction);
+        return %s::model()->removeRecordByID(\$id, \$transaction);
     }
 
     /**
@@ -1145,6 +1145,7 @@ class %s extends \App\Components\ModuleServiceBase
         return %s::model()->getListBySQL(\$params);
     }
 }
+
 EOT;
         return vsprintf($template, [
             $namespace, $use, $className,

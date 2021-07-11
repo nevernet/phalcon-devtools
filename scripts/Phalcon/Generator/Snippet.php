@@ -231,7 +231,7 @@ EOD;
         $customFieldName = null,
         $comment = ''
     ) {
-        $fieldName = $customFieldName ? : $field->getName();
+        $fieldName = $customFieldName ?: $field->getName();
 
         if ($annotate) {
             $templateAttributes = <<<EOD
@@ -787,6 +787,12 @@ EOT;
         return \$result;
     }
 
+    public function removeByIDPermanently(int \$id): bool
+    {
+        \$result = \$this->writeConnection->delete(\$this->useTable, 'id=?', [\$id]);
+        return \$result;
+    }
+
     /**
      * 直接通过id更新指定记录
      * @param int \$id
@@ -914,7 +920,7 @@ EOT;
         // demo code
         if (!empty(\$params['status'])) {
             // array_push(\$conditions, 'status<:status:');
-            // \$bind['status'] = self::STATUS_DELETED;
+            // \$bind['status'] = 99;
         }
 
         \$obj = self::findFirst([
@@ -981,7 +987,7 @@ EOT;
             \$binds[]     = \$params['status'];
         } else {
             \$conditions[] = " a.status != ? ";
-            \$binds[]     = self::STATUS_DELETED;
+            \$binds[]     = 99;
         }
 
         if (!empty(\$joins)) {
@@ -1006,6 +1012,60 @@ EOT;
 
         return ['list' => \$list, 'pageinfo' => \$pageInfo];
     }
+
+    /**
+     * 排序用，获取比当前id排序大一个的info
+     *
+     * @param integer \$id
+     * @param array \$currentInfo
+     * @return array
+     * @throws xLab\Phalcon\Mvc\Exception;
+     */
+    public function getUpInfo(int \$id, array \$currentInfo): array
+    {
+        \$obj = self::findFirst([
+            'conditions' => 'order_no>?1',
+            'bind' => [\$currentInfo['order_no']],
+            'order' => 'order_no asc',
+            'limit' => 1,
+        ]);
+        if (!\$obj) {
+            return [];
+        }
+
+        return \$obj->toArray();
+    }
+
+    /**
+     * @param int \$id
+     * @param array \$currentInfo
+     * @return array
+     * @throws xLab\Phalcon\Mvc\Exception;
+     */
+    public function getDownInfo(int \$id, array \$currentInfo): array
+    {
+        \$obj = self::findFirst([
+            'conditions' => 'order_no<?1',
+            'bind' => [\$currentInfo['order_no']],
+            'order' => 'order_no desc',
+            'limit' => 1,
+        ]);
+        if (!\$obj) {
+            return [];
+        }
+
+        return \$obj->toArray();
+    }
+
+    public function increaseReplyCount(\$id, \$count = 1): bool
+    {
+        \$count = (int)\$count;
+        \$sql = "update {\$this->useDb}.{\$this->useTable} set reply_count = reply_count + ({\$count}) where id=?";
+
+        \$this->writeConnection->execute(\$sql, [\$id]);
+
+        return true;
+    }
 EOT;
 
         return $template;
@@ -1022,12 +1082,14 @@ EOT;
     {
         $template = <<<EOT
 <?php
-namespace %s;
+namespace {{namespace}};
 
-use %s;
+use {{use}};
 use Phalcon\Mvc\Model\Transaction;
+use Structs\EnumStandardStatus;
+use App\Components\LogicException;
 
-class %s extends \App\Components\ModuleServiceBase
+class {{className}} extends \App\Components\ModuleServiceBase
 {
     /**
      * 创建记录
@@ -1038,7 +1100,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function add(array \$params = [], ?Transaction \$transaction = null): int
     {
-        return %s::model()->add(\$params, \$transaction);
+        return {{modelName}}::model()->add(\$params, \$transaction);
     }
 
     /**
@@ -1051,7 +1113,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function updateRecordByID(int \$id, array \$params, ?Transaction \$transaction = null): bool
     {
-        return %s::model()->updateRecordByID(\$id, \$params, \$transaction);
+        return {{modelName}}::model()->updateRecordByID(\$id, \$params, \$transaction);
     }
 
     /**
@@ -1063,7 +1125,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function removeRecordByID(int \$id, ?Transaction \$transaction = null): bool
     {
-       return %s::model()->removeRecordByID(\$id, \$transaction);
+       return {{modelName}}::model()->removeRecordByID(\$id, \$transaction);
     }
 
     /**
@@ -1074,7 +1136,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function updateByID(int \$id, array \$params): bool
     {
-        return %s::model()->updateByID(\$id, \$params);
+        return {{modelName}}::model()->updateByID(\$id, \$params);
     }
 
     /**
@@ -1084,7 +1146,12 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function removeByID(int \$id): bool
     {
-        return %s::model()->removeByID(\$id);
+        return {{modelName}}::model()->removeByID(\$id);
+    }
+
+    public static function removeByIDPermanently(int \$id): bool
+    {
+        return {{modelName}}::model()->removeByIDPermanently(\$id);
     }
 
     /**
@@ -1095,7 +1162,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function getInfoById(int \$id): array
     {
-        return %s::model()->getInfoById(\$id);
+        return {{modelName}}::model()->getInfoById(\$id);
     }
 
     /**
@@ -1110,7 +1177,7 @@ class %s extends \App\Components\ModuleServiceBase
             return [];
         }
         \$ids = array_values(array_unique(\$ids));
-        return %s::model()->getInfoByIds(\$ids);
+        return {{modelName}}::model()->getInfoByIds(\$ids);
     }
 
     /**
@@ -1121,7 +1188,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function patchInfo(&\$list, string \$columnName = 'xxx_id', string \$patchColumn = 'xxx_info')
     {
-        %s::model()->patchInfo(\$list, \$columnName, \$patchColumn);
+        {{modelName}}::model()->patchInfo(\$list, \$columnName, \$patchColumn);
     }
 
     /**
@@ -1131,7 +1198,7 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function getList(array \$params = []): array
     {
-        return %s::model()->getList(\$params);
+        return {{modelName}}::model()->getList(\$params);
     }
 
     /**
@@ -1140,15 +1207,239 @@ class %s extends \App\Components\ModuleServiceBase
      */
     public static function getListBySQL(array \$params = []): array
     {
-        return %s::model()->getListBySQL(\$params);
+        return {{modelName}}::model()->getListBySQL(\$params);
+    }
+
+    public static function getSelectList(array \$params = []): array
+    {
+        \$params['page'] = 1;
+        \$params['limit'] = 100;
+        \$result = {{modelName}}::model()->getList(\$params);
+        \$newList = [];
+        foreach (\$result['list'] as \$v) {
+            \$newList[] = [
+                'id' => \$v['id'],
+                'name' => \$v['name'],
+            ];
+        }
+
+
+        return \$newList;
+    }
+
+    public static function getDetails(int \$id, int \$adminUserId = 0): array
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        return \$info;
+    }
+
+    public static function addOrEdit(array \$params = []): bool
+    {
+        \$id = \$params['id'];
+        unset(\$params['id']);
+
+        if (\$id < 1) {
+            \$result = self::add(\$params);
+        } else {
+            \$result = self::updateRecordByID(\$id, \$params);
+        }
+
+        if (!\$result) {
+            throw new LogicException("新增或者编辑失败，请查看系统日志");
+        }
+
+        return true;
+    }
+
+    public static function switch(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$updateParams = [
+            'status' => \$info['status'] == EnumStandardStatus::Normal ? EnumStandardStatus::Locked : EnumStandardStatus::Normal,
+        ];
+
+        \$res = self::updateByID(\$id, \$updateParams);
+        if (\$res == false) {
+            throw new LogicException('更新记录失败', -1);
+        }
+        return true;
+    }
+
+    public static function removeItem(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$res = self::removeByID(\$id);
+        if (\$res == false) {
+            throw new LogicException('删除记录失败', -1);
+        }
+
+        return true;
+    }
+
+    public static function reorder(int \$id, \$direction, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        if (\$direction == \Structs\EnumOrderDirection::Up) {
+            \$upInfo = {{modelName}}::model()->getUpInfo(\$info['id'], \$info);
+            if (empty(\$upInfo)) {
+                return true;
+            }
+            self::updateByID(\$upInfo['id'], [
+                'order_no' => \$info['order_no'],
+            ]);
+            self::updateByID(\$info['id'], ['order_no' => \$upInfo['order_no']]);
+        } elseif (\$direction == \Structs\EnumOrderDirection::Down) {
+            \$downInfo = {{modelName}}::model()->getDownInfo(\$info['id'], \$info);
+            if (empty(\$downInfo)) {
+                return true;
+            }
+            self::updateByID(\$downInfo['id'], [
+                'order_no' => \$info['order_no'],
+            ]);
+            self::updateByID(\$info['id'], ['order_no' => \$downInfo['order_no']]);
+        }
+
+        return true;
+    }
+
+    public static function publish(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$params = [
+            'status' => EnumStandardStatus::Normal,
+        ];
+        \$res = self::updateByID(\$id, \$params);
+        if (\$res == false) {
+            throw new LogicException('发布失败', -1);
+        }
+
+        return true;
+    }
+
+    public static function cancel(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$params = [
+            'status' => EnumStandardStatus::Editing,
+        ];
+        \$res = self::updateByID(\$id, \$params);
+        if (\$res == false) {
+            throw new LogicException('发布失败', -1);
+        }
+
+        return true;
+    }
+
+    public static function approve(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$params = [
+            'status' => EnumStandardStatus::Approved,
+        ];
+        \$res = self::updateByID(\$id, \$params);
+        if (\$res == false) {
+            throw new LogicException('审核失败', -1);
+        }
+
+        return true;
+    }
+
+    public static function reject(int \$id, int \$adminUserId = 0): bool
+    {
+        \$info = self::getInfoById(\$id);
+        if (empty(\$info) || \$info['status'] == EnumStandardStatus::Deleted) {
+            throw new LogicException('不存在的数据', -1);
+        }
+        // self::validatePermission(\$adminUserId, \$info, \$params);
+
+        // if (!UsersService::checkGroupIDIsMine(\$adminUserId, \$info['group_id'])) {
+        //     throw new LogicException('非法操作', -1);
+        // }
+
+        \$params = [
+            'status' => EnumStandardStatus::Rejected,
+        ];
+        \$res = self::updateByID(\$id, \$params);
+        if (\$res == false) {
+            throw new LogicException('拒绝失败', -1);
+        }
+
+        return true;
+    }
+
+    public static function increaseReplyCount(\$id, \$count = 1)
+    {
+        {{modelName}}::model()->increaseReplyCount(\$id, \$count);
     }
 }
 EOT;
-        return vsprintf($template, [
-            $namespace, $use, $className,
-            $modelName, $modelName, $modelName,
-            $modelName, $modelName, $modelName, $modelName,
-            $modelName, $modelName, $modelName, $modelName, $modelName
-        ]);
+        $template = str_replace("{{namespace}}", $namespace, $template);
+        $template = str_replace("{{use}}", $use, $template);
+        $template = str_replace("{{className}}", $className, $template);
+        $template = str_replace("{{modelName}}", $modelName, $template);
+
+        return $template;
     }
 }
